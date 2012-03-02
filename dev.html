@@ -104,16 +104,23 @@
             addAnnotationFilter: false
           }) */
           //.addPlugin('Tags')
-          .addPlugin('Permissions', {
+          /* .addPlugin('Permissions', {
             user: 'alice',
             permissions: {
               update: ['alice']
             }
-          });
-          // .addPlugin('Store', {
-          //   prefix: 'http://localhost:5000'
-          // });
-          
+          }) */
+          .addPlugin('Store', {
+            //prefix: 'http://virtuoso.mpiwg-berlin.mpg.de:8080/AnnotationManager/annotator'
+            prefix: 'http://annotateit.org/api'
+          })
+          .addPlugin('Auth', {
+            tokenUrl: 'http://annotateit.org/api/token'
+            //token: 'blablabla',
+            //autoFetch: false
+          })
+          ;
+
       }(jQuery));
     </script>
   </body>
