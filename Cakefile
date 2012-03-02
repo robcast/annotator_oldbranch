@@ -3,9 +3,9 @@ fs   = require 'fs'
 {print} = require 'util'
 {exec}  = require 'child_process'
 
-FFI  = require 'node-ffi'
-libc = new FFI.Library(null, "system": ["int32", ["string"]])
-run  = libc.system
+#FFI  = require 'node-ffi'
+#libc = new FFI.Library(null, "system": ["int32", ["string"]])
+#run  = libc.system
 
 COFFEE = "`npm bin`/coffee"
 UGLIFY_JS = "`npm bin`/uglifyjs"
@@ -36,6 +36,9 @@ BOOKMARKLET_PATH = 'contrib/bookmarklet'
 BOOKMARKLET_PLUGINS = ['auth', 'store', 'permissions', 'annotateitpermissions', 'unsupported', 'tags']
 
 task 'watch', 'Run development source watcher', ->
+  FFI  = require 'node-ffi'
+  libc = new FFI.Library(null, "system": ["int32", ["string"]])
+  run  = libc.system
   run "#{COFFEE} --watch --bare --compile --output #{__dirname}/lib #{__dirname}/src"
 
 option '-f', '--filter [string]', 'Filename filter to apply to `cake test`'
@@ -44,6 +47,9 @@ task 'test', 'Run tests. Filter tests using `-f [filter]` eg. cake -f auth test'
   console.log "WARNING: A number of tests are currently broken, pending resolution of jsdom",
               "issue 394. See:\n  https://github.com/tmpvar/jsdom/issues/394"
 
+  FFI  = require 'node-ffi'
+  libc = new FFI.Library(null, "system": ["int32", ["string"]])
+  run  = libc.system
   run "#{COFFEE} #{__dirname}/test/runner.coffee #{options.filter}"
 
 option "", "--no-minify", "Do not minify built scripts with `cake package`"
@@ -134,6 +140,9 @@ task 'i18n:update', 'Update the annotator.pot template', ->
   fileList = fileList.concat util.lib_files(CORE)
   fileList = fileList.concat util.lib_files(PLUGINS, 'plugin/')
 
+  FFI  = require 'node-ffi'
+  libc = new FFI.Library(null, "system": ["int32", ["string"]])
+  run  = libc.system
   run "xgettext -Lpython -olocale/annotator.pot -k_t -kgettext #{fileList.join(" ")}"
 
 #----------------------------------------------------------------------------
