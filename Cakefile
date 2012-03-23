@@ -41,16 +41,14 @@ task 'watch', 'Run development source watcher', ->
   run  = libc.system
   run "#{COFFEE} --watch --bare --compile --output #{__dirname}/lib #{__dirname}/src"
 
-option '-f', '--filter [string]', 'Filename filter to apply to `cake test`'
+task "serve", "Serve the current directory", ->
+  run "python -m SimpleHTTPServer 8000"
 
-task 'test', 'Run tests. Filter tests using `-f [filter]` eg. cake -f auth test', (options) ->
-  console.log "WARNING: A number of tests are currently broken, pending resolution of jsdom",
-              "issue 394. See:\n  https://github.com/tmpvar/jsdom/issues/394"
+task "test", "Open the test suite in the browser", ->
+  run "open http://localhost:8000/test/runner.html"
 
-  FFI  = require 'node-ffi'
-  libc = new FFI.Library(null, "system": ["int32", ["string"]])
-  run  = libc.system
-  run "#{COFFEE} #{__dirname}/test/runner.coffee #{options.filter}"
+task "test:phantom", "Open the test suite in the browser", ->
+  run "phantomjs test/runner.coffee http://localhost:8000/test/runner.html"
 
 option "", "--no-minify", "Do not minify built scripts with `cake package`"
 task 'package', 'Build the packaged annotator', ->
@@ -135,6 +133,13 @@ task 'bookmarklet:watch', 'Watch the bookmarklet source for changes', ->
     return if curr.size is prev.size and curr.mtime.getTime() is prev.mtime.getTime()
     invoke 'bookmarklet:build_demo'
 
+task 'bookmarklet:upload', 'Upload bookmarklet source files to S3', ->
+  invoke 'bookmarklet:prereqs'
+  console.log("Uploading bookmarklet source files."
+              "Don't expect this to work unless you have `s3cmd` and have configured it"
+              "for access to the OKF's S3 account.")
+  run "s3cmd --acl-public sync contrib/bookmarklet/pkg/*.{js,css} s3://assets.annotateit.org/bookmarklet/"
+
 task 'i18n:update', 'Update the annotator.pot template', ->
   fileList = []
   fileList = fileList.concat util.lib_files(CORE)
@@ -213,4 +218,3 @@ bookmarklet =
 util =
   src_files: (names, prefix='') -> names.map (x) -> "src/#{prefix}#{x}.coffee"
   lib_files: (names, prefix='') -> names.map (x) -> "lib/#{prefix}#{x}.js"
-

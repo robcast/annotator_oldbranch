@@ -36,26 +36,42 @@ describe 'Annotator', ->
       spyOn(annotator, '_setupWrapper').andReturn(annotator)
       spyOn(annotator, '_setupViewer').andReturn(annotator)
       spyOn(annotator, '_setupEditor').andReturn(annotator)
-      Annotator.prototype.constructor.call(annotator, annotator.element[0])
+      spyOn(annotator, '_setupDocumentEvents').andReturn(annotator)
 
     it "should have a jQuery wrapper as @element", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator.element instanceof $).toBeTruthy()
 
     it "should create an empty @plugin object", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator.hasOwnProperty('plugins')).toBeTruthy()
 
     it "should create the adder and highlight properties from the @html strings", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator.adder instanceof $).toBeTruthy()
       expect(annotator.hl instanceof $).toBeTruthy()
 
     it "should call Annotator#_setupWrapper()", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator._setupWrapper).toHaveBeenCalled()
 
     it "should call Annotator#_setupViewer()", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator._setupViewer).toHaveBeenCalled()
 
     it "should call Annotator#_setupEditor()", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator._setupEditor).toHaveBeenCalled()
+
+    it "should call Annotator#_setupDocumentEvents()", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
+      expect(annotator._setupDocumentEvents).toHaveBeenCalled()
+
+    it "should NOT call Annotator#_setupDocumentEvents() if options.readOnly is true", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0], {
+        readOnly: true
+      })
+      expect(annotator._setupDocumentEvents).not.toHaveBeenCalled()
 
   describe "_setupDocumentEvents", ->
     beforeEach: ->
@@ -210,8 +226,14 @@ describe 'Annotator', ->
     mockGlobal = null
     mockSelection = null
     mockRange = null
+    mockBrowserRange = null
 
     beforeEach ->
+      mockBrowserRange = {
+        cloneRange: jasmine.createSpy('Range#cloneRange()')
+      }
+      mockBrowserRange.cloneRange.andReturn(mockBrowserRange)
+
       # This mock pretends to be both NomalizedRange and BrowserRange.
       mockRange = {
         limit: jasmine.createSpy('NormalizedRange#limit()')
@@ -223,7 +245,7 @@ describe 'Annotator', ->
 
       # https://developer.mozilla.org/en/nsISelection
       mockSelection = {
-        getRangeAt: jasmine.createSpy('Selection#getRangeAt()').andReturn('')
+        getRangeAt: jasmine.createSpy('Selection#getRangeAt()').andReturn(mockBrowserRange)
         removeAllRanges: jasmine.createSpy('Selection#removeAllRanges()')
         addRange: jasmine.createSpy('Selection#addRange()')
         rangeCount: 1
@@ -242,10 +264,11 @@ describe 'Annotator', ->
       ranges = annotator.getSelectedRanges()
       expect(ranges).toEqual([mockRange])
 
-    it "should remove any failed calls to NormalizedRange#limit()", ->
+    it "should remove any failed calls to NormalizedRange#limit(), but re-add them to the global selection", ->
       mockRange.limit.andReturn(null)
       ranges = annotator.getSelectedRanges()
       expect(ranges).toEqual([])
+      expect(mockSelection.addRange).toHaveBeenCalledWith(mockBrowserRange)
 
     it "should return an empty array if selection.isCollapsed is true", ->
       mockSelection.isCollapsed = true
