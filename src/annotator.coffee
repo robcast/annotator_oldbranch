@@ -250,7 +250,7 @@ class Annotator extends Delegator
   setupAnnotation: (annotation, fireEvents=true) ->
     annotation.ranges or= @selectedRanges
 
-    normedRanges = for r in annotation.ranges
+    normedRanges = for r in annotation.ranges when r?
       sniffed    = Range.sniff(r)
       sniffed.normalize(@wrapper[0])
 

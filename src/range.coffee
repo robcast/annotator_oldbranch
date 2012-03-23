@@ -64,6 +64,8 @@ class Range.BrowserRange
       node = this[p + 'Container']
       offset = this[p + 'Offset']
 
+      return false unless node? and offset?
+      
       # elementNode nodeType == 1
       if node.nodeType is 1
         # Get specified node.
