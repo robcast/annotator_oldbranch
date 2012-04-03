@@ -23,7 +23,6 @@
     <script src="lib/plugin/tags.js"></script>
     <script src="lib/plugin/unsupported.js"></script>
     <script src="lib/plugin/filter.js"></script>
-    <script src="lib/plugin/kitchensink.js"></script>
 
     <link rel="stylesheet" type="text/css" href="css/annotator.css">
   </head>
@@ -97,16 +96,6 @@
       var devAnnotator
       (function ($) {
         var elem = document.getElementById('airlock');
-        var uri = window.location.href.split(/#|\?/).shift();
-        /* $('#airlock').annotator().annotator('setupPlugins', null, {
-                 Tags: false,
-                 Filter: false,
-                 Auth: false,
-                 Store: {
-                     prefix: 'http://virtuoso.mpiwg-berlin.mpg.de:8080/AnnotationManager/annotator'
-                         //prefix: 'http://annotateit.org/api'
-                       }
-               }); */
 
         var devAnnotator = new Annotator(elem)
           //.addPlugin('Auth')
