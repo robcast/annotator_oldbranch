@@ -106,7 +106,7 @@
           //.addPlugin('Tags')
           .addPlugin('Auth', {
             //tokenUrl: 'http://annotateit.org/api/token'
-            tokenUrl: 'http://localhost:8080/test/annotator/token'
+            tokenUrl: 'http://localhost:8080/test/annotator/token?user=casties'
             //autoFetch: false
           })
           .addPlugin('Permissions', {
@@ -125,7 +125,7 @@
             }
           })
           .addPlugin('Store', {
-              prefix: 'http://localhost:18080/AnnotationManager/annotator',
+            prefix: 'http://localhost:18080/AnnotationManager/annotator',
             //prefix: 'http://virtuoso.mpiwg-berlin.mpg.de:8080/AnnotationManager/annotator',
             //prefix: 'http://annotateit.org/api',
             annotationData: {
