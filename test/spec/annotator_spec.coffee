@@ -37,6 +37,7 @@ describe 'Annotator', ->
       spyOn(annotator, '_setupViewer').andReturn(annotator)
       spyOn(annotator, '_setupEditor').andReturn(annotator)
       spyOn(annotator, '_setupDocumentEvents').andReturn(annotator)
+      spyOn(annotator, '_setupDynamicStyle').andReturn(annotator)
 
     it "should have a jQuery wrapper as @element", ->
       Annotator.prototype.constructor.call(annotator, annotator.element[0])
@@ -46,10 +47,9 @@ describe 'Annotator', ->
       Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator.hasOwnProperty('plugins')).toBeTruthy()
 
-    it "should create the adder and highlight properties from the @html strings", ->
+    it "should create the adder properties from the @html strings", ->
       Annotator.prototype.constructor.call(annotator, annotator.element[0])
       expect(annotator.adder instanceof $).toBeTruthy()
-      expect(annotator.hl instanceof $).toBeTruthy()
 
     it "should call Annotator#_setupWrapper()", ->
       Annotator.prototype.constructor.call(annotator, annotator.element[0])
@@ -72,6 +72,10 @@ describe 'Annotator', ->
         readOnly: true
       })
       expect(annotator._setupDocumentEvents).not.toHaveBeenCalled()
+
+    it "should call Annotator#_setupDynamicStyle()", ->
+      Annotator.prototype.constructor.call(annotator, annotator.element[0])
+      expect(annotator._setupDynamicStyle).toHaveBeenCalled()
 
   describe "_setupDocumentEvents", ->
     beforeEach: ->
@@ -222,6 +226,40 @@ describe 'Annotator', ->
     it "should append the Editor#element to the Annotator#wrapper", ->
       expect(mockEditor.element.appendTo).toHaveBeenCalledWith(annotator.wrapper)
 
+  describe "_setupDynamicStyle", ->
+    $fix = null
+
+    beforeEach ->
+      addFixture 'annotator'
+      $fix = $(fix())
+
+    afterEach -> clearFixtures()
+
+    it 'should ensure Annotator z-indices are larger than others in the page', ->
+      $fix.show()
+
+      $adder = $('<div style="position:relative;" class="annotator-adder">&nbsp;</div>').appendTo($fix)
+      $filter = $('<div style="position:relative;" class="annotator-filter">&nbsp;</div>').appendTo($fix)
+
+      check = (minimum) ->
+        adderZ = parseInt($adder.css('z-index'), 10)
+        filterZ = parseInt($filter.css('z-index'), 10)
+        expect(adderZ > minimum).toBeTruthy()
+        expect(filterZ > minimum).toBeTruthy()
+        expect(adderZ > filterZ).toBeTruthy()
+
+      check(1000)
+
+      $fix.append('<div style="position: relative; z-index: 2000"></div>')
+      annotator._setupDynamicStyle()
+      check(2000)
+
+      $fix.append('<div style="position: relative; z-index: 10000"></div>')
+      annotator._setupDynamicStyle()
+      check(10000)
+
+      $fix.hide()
+
   describe "getSelectedRanges", ->
     mockGlobal = null
     mockSelection = null
@@ -338,13 +376,27 @@ describe 'Annotator', ->
     it "should set the annotation.ranges", ->
       expect(annotation.ranges).toEqual([{}])
 
-    it "should exclude any ranges that could not be normalised", ->
-      sniffedRange.normalize = jasmine.createSpy('sniffedRange#normalize()').andReturn(null)
+    it "should exclude any ranges that could not be normalized", ->
+      e = new Range.RangeError("typ", "msg")
+      sniffedRange.normalize = jasmine.createSpy('sniffedRange#normalize()').andThrow(e)
       annotation = annotator.setupAnnotation({
         text: comment,
-        ranges: [1, 2]
+        ranges: [1]
       })
+
       expect(annotation.ranges).toEqual([])
+
+    it "should trigger rangeNormalizeFail for each range that can't be normalized", ->
+      e = new Range.RangeError("typ", "msg")
+      sniffedRange.normalize = jasmine.createSpy('sniffedRange#normalize()').andThrow(e)
+      annotator.publish = jasmine.createSpy('Annotator#publish()')
+      annotation = annotator.setupAnnotation({
+        text: comment,
+        ranges: [1]
+      })
+
+      expect(annotator.publish).toHaveBeenCalledWith('rangeNormalizeFail', [annotation, 1, e])
+      expect(annotator.publish).toHaveBeenCalledWith('annotationCreated', [annotation])
 
     it "should call Annotator#highlightRange() with the normed range", ->
       expect(annotator.highlightRange).toHaveBeenCalledWith(normalizedRange)
@@ -462,6 +514,32 @@ describe 'Annotator', ->
       expect(elements.length).toBe(1)
       expect(elements[0].className).toBe('annotator-hl')
       expect(elements[0].firstChild).toBe(textNodes[0])
+
+    it "should set highlight element class names to its second argument", ->
+      textNodes = (document.createTextNode(text) for text in ['hello', 'world'])
+      mockRange =
+        textNodes: -> textNodes
+
+      elements = annotator.highlightRange(mockRange, 'monkeys')
+      expect(elements[0].className).toBe('monkeys')
+
+  describe "highlightRanges", ->
+    it "should return a list of highlight elements all highlighted ranges", ->
+      textNodes = (document.createTextNode(text) for text in ['hello', 'world'])
+      mockRange =
+        textNodes: -> textNodes
+      ranges = [mockRange, mockRange, mockRange]
+      elements = annotator.highlightRanges(ranges)
+      expect(elements.length).toBe(6)
+      expect(elements[0].className).toBe('annotator-hl')
+
+    it "should set highlight element class names to its second argument", ->
+      textNodes = (document.createTextNode(text) for text in ['hello', 'world'])
+      mockRange =
+        textNodes: -> textNodes
+      ranges = [mockRange, mockRange, mockRange]
+      elements = annotator.highlightRanges(ranges, 'monkeys')
+      expect(elements[0].className).toBe('monkeys')
 
   describe "addPlugin", ->
     plugin = null
@@ -750,6 +828,9 @@ describe 'Annotator', ->
       spyOn(annotator.adder, 'position').andReturn(mockOffset)
       spyOn(annotator, 'createAnnotation').andReturn(annotation)
       spyOn(annotator, 'showEditor')
+      spyOn(Range, 'sniff').andReturn({ normalize: -> 'normalized' })
+      spyOn(annotator, 'highlightRanges').andReturn(['baz', 'bat'])
+      annotator.selectedRanges = ['foo', 'bar']
 
       annotator.onAdderClick()
 
@@ -762,6 +843,9 @@ describe 'Annotator', ->
     it "should display the Annotation#editor in the same place as the Annotation#adder", ->
       expect(annotator.adder.position).toHaveBeenCalled()
       expect(annotator.showEditor).toHaveBeenCalledWith(annotation, mockOffset)
+
+    it "should add temporary highlights to the document to show the user what they selected", ->
+      expect(annotator.highlightRanges).toHaveBeenCalledWith(['normalized', 'normalized'], 'annotator-hl-temporary')
 
   describe "onEditAnnotation", ->
     it "should display the Annotator#editor in the same positions as Annotatorviewer", ->

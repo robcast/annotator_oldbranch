@@ -88,41 +88,12 @@ Callback name                                  | Description
 Development
 -----------
 
-If you wish to develop Annotator, you'll need to have a working installation of [Node.js][node] (v0.6.x). I'd highly recommend installing both Node.js and the [Node Package Manager][npm], after which you can run the following to get up and running:
-
-    $ npm install .
-
-The Annotator source is found in `src/`, and is written in CoffeeScript, which is a little language that compiles to Javascript. See the [CoffeeScript website][coffee] for more information.
-
-`dev.html` loads the raw development files from `lib/` and can be useful when developing.
-
-The tests are to be found in `test/spec/`, and use [Jasmine][jas] to support a BDD process.
-
-For inline documentation we use [TomDoc][tom]. It's a Ruby specification but it
-also works nicely with CoffeeScript.
-
-
-The `Cakefile` provides a number of useful tasks. (**NB**: If `cake` doesn't work for you, try `` `npm bin`/cake`` instead.)
-
-    $ cake serve        # serves the directory at http://localhost:8000 (requires python)
-    $ cake test         # opens the test suite in your browser
-    $ cake test:phantom # runs the test suite with PhantomJS
-    $ cake watch        # compiles src/*.coffee files into lib/*.js when they change
-    $ cake package[:*]  # builds the production version of Annotator in pkg/
-
-Run `cake` (or `` `npm bin`/cake``) to see the list of all available tasks.
+See [HACKING.markdown](/okfn/annotator/blob/master/HACKING.markdown)
 
 Community
 ---------
 
 The annotator project has a [mailing list][dev] for developer discussion and community members can sometimes be found in the #annotator channel on [freenode IRC][irc].
 
-[node]: http://nodejs.org/
-[npm]: http://npmjs.org/
-[coffee]: http://coffeescript.org/ 
-[jas]: http://pivotal.github.com/jasmine/
-[tom]: http://tomdoc.org/
 [dev]: http://lists.okfn.org/mailman/listinfo/annotator-dev
 [irc]: http://freenode.net/
-
-
