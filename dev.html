@@ -96,6 +96,7 @@
       var devAnnotator
       (function ($) {
         var elem = document.getElementById('airlock');
+        var uri = window.location.href.split(/#|\?/).shift();
 
         var devAnnotator = new Annotator(elem)
           //.addPlugin('Auth')
@@ -125,8 +126,8 @@
             }
           })
           .addPlugin('Store', {
-            prefix: 'http://localhost:18080/AnnotationManager/annotator',
-            //prefix: 'http://virtuoso.mpiwg-berlin.mpg.de:8080/AnnotationManager/annotator',
+            //prefix: 'http://localhost:18080/AnnotationManager/annotator',
+            prefix: 'http://tuxserve03.mpiwg-berlin.mpg.de/AnnotationManager/annotator',
             //prefix: 'http://annotateit.org/api',
             annotationData: {
               'uri': uri
