@@ -476,6 +476,7 @@ class Annotator extends Delegator
   showEditor: (annotation, location) =>
     @editor.element.css(location)
     @editor.load(annotation)
+    this.publish('annotationEditorShown', [@editor, annotation])
     this
 
   # Callback method called when the @editor fires the "hide" event. Itself
@@ -570,6 +571,8 @@ class Annotator extends Delegator
 
     for range in @selectedRanges
       container = range.commonAncestor
+      if $(container).hasClass('annotator-hl')
+        container = $(container).parents('[class^=annotator-hl]')[0]
       return if this.isAnnotator(container)
 
     if event and @selectedRanges.length
@@ -644,7 +647,7 @@ class Annotator extends Delegator
     # Show a temporary highlight so the user can see what they selected
     if @selectedRanges and @selectedRanges.length
       ranges = (Range.sniff(r).normalize() for r in @selectedRanges)
-      highlights = this.highlightRanges(ranges, 'annotator-hl-temporary')
+      highlights = this.highlightRanges(ranges, 'annotator-hl annotator-hl-temporary')
 
       @editor.element.one 'hide', ->
         for h in highlights
