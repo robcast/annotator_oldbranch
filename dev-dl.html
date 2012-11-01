@@ -11,7 +11,7 @@
     <script src="lib/console.js"></script>
     <script src="lib/class.js"></script>
     <script src="lib/range.js"></script>
-    <script src="lib/annotator.js"></script>
+    <script src="lib/annotator-dl.js"></script>
     <script src="lib/widget.js"></script>
     <script src="lib/editor.js"></script>
     <script src="lib/viewer.js"></script>
@@ -39,11 +39,13 @@
         <script type="text/javascript" src="../digilib/webapp/src/main/webapp/jquery/jquery.digilib.birdseye.js"></script>
         <script type="text/javascript" src="../digilib/webapp/src/main/webapp/jquery/jquery.digilib.marks.js"></script>
         <script type="text/javascript" src="../digilib/webapp/src/main/webapp/jquery/jquery.digilib.regions.js"></script>
-        <script type="text/javascript" src="../digilib/webapp/src/main/webapp/jquery/jquery.digilib.annotations.js"></script>
+        <script type="text/javascript" src="../digilib/webapp/src/main/webapp/jquery/jquery.digilib.annotator.js"></script>
         <link rel="stylesheet" type="text/css" href="../digilib/webapp/src/main/webapp/jquery/jquery.digilib.css" />
 
         <script type="text/javascript">
             $(document).ready(function(){
+                var $div = $('div#digilib');
+                var devAnnotator = null; //new Annotator($div.get(0));
                 var opts = {
                 	// base URL to digilib (e.g. 'http://digilib.mpiwg-berlin.mpg.de/digitallibrary')
                     'digilibBaseUrl' : 'http://localhost:18080/digilib-webapp',
@@ -51,59 +53,19 @@
                     //'scalerBaseUrl' : null,                    
                     interactionMode : 'fullscreen',
                     showRegionNumbers : true,
+                    // annotator
+                    'annotatorInstance' : devAnnotator,
                     // URL of annotation server
                     'annotationServerUrl' : 'http://localhost:18080/AnnotationManager/annotator',
                     //'annotationServerUrl' : 'http://tuxserve03.mpiwg-berlin.mpg.de/AnnotationManager/annotator',
                     // URL of authentication token server
-                    'annotationTokenUrl' : 'http://r583-1.mpiwg-berlin.mpg.de:8080/test/annotator/token/getLoginToken',
+                    'annotationTokenUrl' : 'http://r583-1.mpiwg-berlin.mpg.de:8080/test/annotator/token/getLoginToken'
                     };
-                var $div = $('div#digilib');
                 $div.digilib(opts);
 
                 var elem = $div.get(0); //document.getElementById('airlock');
                 var uri = window.location.href.split(/#|\?/).shift();
 
-                var devAnnotator = new Annotator(elem)
-                  //.addPlugin('Auth')
-                  //.addPlugin('Unsupported')
-                  /* .addPlugin('Filter', {
-                    addAnnotationFilter: false
-                  }) */
-                  //.addPlugin('Tags')
-                  .addPlugin('Auth', {
-                    //tokenUrl: 'http://annotateit.org/api/token'
-                    tokenUrl: 'http://localhost:8080/test/annotator/token?user=anonymous'
-                    //autoFetch: false
-                  })
-                  .addPlugin('Permissions', {
-                    user: 'casties',
-                    userString: function (user) {
-                      if (user && user.name) {
-                        return user.name;
-                      }
-                      return user;
-                    },
-                    userId: function (user) {
-                      if (user && user.id) {
-                        return user.id;
-                      }
-                      return user;
-                    }
-                  })
-                  .addPlugin('Store', {
-                    prefix: 'http://localhost:18080/AnnotationManager/annotator',
-                    //prefix: 'http://tuxserve03.mpiwg-berlin.mpg.de/AnnotationManager/annotator',
-                    //prefix: 'http://annotateit.org/api',
-                    annotationData: {
-                      'uri': uri
-                    },
-                    loadFromSearch: {
-                      'limit': 20,
-                      'uri': uri
-                      //'uri': 'http://127.0.0.1:18080/ECHOdocuViewfullTest?pn=21&url=/mpiwg/online/permanent/library/163127KK'
-                    }
-                  })
-                  ;
 });
 
         </script>
