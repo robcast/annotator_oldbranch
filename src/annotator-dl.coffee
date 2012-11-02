@@ -289,40 +289,33 @@ class Annotator extends Delegator
   # Returns the initialised annotation.
   setupAnnotation: (annotation, fireEvents=true) ->
     root = @wrapper[0]
-    
-    if not annotation.areas
-      # deal with ranges 
-      annotation.ranges or= @selectedRanges
-  
-      normedRanges = []
-      for r in annotation.ranges
-        try
-          normedRanges.push(Range.sniff(r).normalize(root))
-        catch e
-          if e instanceof Range.RangeError
-            this.publish('rangeNormalizeFail', [annotation, r, e])
-          else
-            # Oh Javascript, why you so crap? This will lose the traceback.
-            throw e
-  
-      annotation.quote      = []
-      annotation.ranges     = []
-      annotation.highlights = []
-  
-      for normed in normedRanges
-        annotation.quote.push      $.trim(normed.text())
-        annotation.ranges.push     normed.serialize(@wrapper[0], '.annotator-hl')
-        $.merge annotation.highlights, this.highlightRange(normed)
+    annotation.ranges or= @selectedRanges
 
-      # Join all the quotes into one string.
-      annotation.quote = annotation.quote.join(' / ')
-  
-      # Save the annotation data on each highlighter element.
-      $(annotation.highlights).data('annotation', annotation)
-  
-    # Fire annotationCreated events so that plugins can react to them.
-    if fireEvents
-      this.publish('annotationCreated', [annotation])
+    normedRanges = []
+    for r in annotation.ranges
+      try
+        normedRanges.push(Range.sniff(r).normalize(root))
+      catch e
+        if e instanceof Range.RangeError
+          this.publish('rangeNormalizeFail', [annotation, r, e])
+        else
+          # Oh Javascript, why you so crap? This will lose the traceback.
+          throw e
+
+    annotation.quote      = []
+    annotation.ranges     = []
+    annotation.highlights = []
+
+    for normed in normedRanges
+      annotation.quote.push      $.trim(normed.text())
+      annotation.ranges.push     normed.serialize(@wrapper[0], '.annotator-hl')
+      $.merge annotation.highlights, this.highlightRange(normed)
+
+    # Join all the quotes into one string.
+    annotation.quote = annotation.quote.join(' / ')
+
+    # Save the annotation data on each highlighter element.
+    $(annotation.highlights).data('annotation', annotation)
 
     annotation
 
@@ -501,10 +494,10 @@ class Annotator extends Delegator
   onEditorSubmit: (annotation) =>
     this.publish('annotationEditorSubmit', [@editor, annotation])
 
-    if annotation.ranges == undefined
-      this.setupAnnotation(annotation)
-    else
+    if annotation.ranges? or annotation.areas?
       this.updateAnnotation(annotation)
+    else
+      this.setupAnnotation(annotation)
 
   # Public: Loads the @viewer with an Array of annotations and positions it
   # at the location provided. Calls the 'annotationViewerShown' event.
