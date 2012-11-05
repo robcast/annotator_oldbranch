@@ -317,6 +317,10 @@ class Annotator extends Delegator
     # Save the annotation data on each highlighter element.
     $(annotation.highlights).data('annotation', annotation)
 
+    # Fire annotationCreated events so that plugins can react to them.
+    if fireEvents
+      this.publish('annotationCreated', [annotation])
+
     annotation
 
   # Public: Publishes the 'beforeAnnotationUpdated' and 'annotationUpdated'
