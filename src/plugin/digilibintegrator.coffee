@@ -17,20 +17,33 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
   pluginInit: ->
     console.debug "DigilibIntegrator plugin init"
     
-    # monkey patch Annotator.setupAnnotation
-    digilib = @options.hooks
+    # monkey-patch Annotator.setupAnnotation
+    @annotator.digilib = @options.hooks
     @annotator.setupRangeAnnotation = @annotator.setupAnnotation
-    @annotator.setupAnnotation = (annotation, fireEvents=true) ->
-      # patched Annotator.setupAnnotation
-      # accepts annotations with areas and renders in digilib
+    @annotator.setupAnnotation = @_setupAnnotation
+        
+    this
+        
+  # patched Annotator.setupAnnotation: accepts annotations with areas and renders in digilib
+  #
+  # Public: Initialises an annotation either from an object representation or
+  # an annotation created with Annotator#createAnnotation(). It finds the
+  # selected range and higlights the selection in the DOM.
+  #
+  # annotation - An annotation Object to initialise.
+  # fireEvents - Will fire the 'annotationCreated' event if true.
+  #
+  # Returns the initialised annotation.
+  _setupAnnotation: (annotation, fireEvents=true) ->
       if @selectedAreas? or annotation.areas?
         # do digilib annotations
         console.debug "setupAnnotation for areas!"
         annotation.areas or= @selectedAreas
         # compatibility crap
         annotation.highlights = []
+        annotation.ranges = []
         # setup in digilib
-        digilib.setupAnnotation(annotation)
+        @digilib.setupAnnotation(annotation)
         
         # Fire annotationCreated events so that plugins can react to them.
         if fireEvents
@@ -40,18 +53,8 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
         
       else
         # do old method
-        @annotator.setupRangeAnnotation.apply(this, arguments)
-        
-    # monkey patch Annotator.onEditorSubmit
-    @annotator.onEditorSubmit = (annotation) =>
-      @annotator.publish('annotationEditorSubmit', [@editor, annotation])
-      # accept either @ranges or @areas
-      if annotation.ranges? or annotation.areas?
-        @annotator.updateAnnotation(annotation)
-      else
-        @annotator.setupAnnotation(annotation)
+        this.setupRangeAnnotation.apply(this, arguments)
 
-        
   # Public: Callback method for annotationDeleted event. Receives an annotation
   # and forwards to digilib.
   #
