@@ -157,7 +157,8 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
       if xhr.status == 401
         callback = @options.unauthorizedCallback 
         if callback? and callback(this)
-          # don't show error if callback returns
+          # try again in 1s if callback returns true
+          @retryTimeout = setTimeout (() => this.requestToken()), 1000
           return
           
       msg = Annotator._t("Couldn't get auth token:")
