@@ -99,7 +99,7 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
     autoFetch: true
     
     # HTTP method to use for fetching the token
-    requestType: 'GET'
+    requestMethod: 'GET'
     
     # data to send when fetching the token
     requestData: null
@@ -144,7 +144,7 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
       url: @options.tokenUrl
       dataType: 'text'
       data: @options.requestData
-      type: @options.requestType
+      type: @options.requestMethod
       xhrFields:
         withCredentials: true # Send any auth cookies to the backend
 
@@ -154,6 +154,12 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
 
     # on failure, relay any message given by the server to the user with a notification
     .fail (xhr, status, err) =>
+      if xhr.status == 401
+        callback = @options.unauthorizedCallback 
+        if callback? and callback(this)
+          # don't show error if callback returns
+          return
+          
       msg = Annotator._t("Couldn't get auth token:")
       console.error "#{msg} #{err}", xhr
       Annotator.showNotification("#{msg} #{xhr.responseText}", Annotator.Notification.ERROR)
