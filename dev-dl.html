@@ -6,6 +6,7 @@
 
     <script src="lib/vendor/jquery.js"></script>
     <script src="lib/vendor/json2.js"></script>
+    <script src="lib/vendor/showdown.js"></script>
 
     <script src="lib/extensions.js"></script>
     <script src="lib/console.js"></script>
@@ -21,6 +22,7 @@
     <!-- <script src="lib/plugin/annotateitpermissions.js"></script> -->
     <script src="lib/plugin/authlogin.js"></script>
     <script src="lib/plugin/tags.js"></script>
+    <script src="lib/plugin/markdown.js"></script>
     <script src="lib/plugin/unsupported.js"></script>
     <!-- <script src="lib/plugin/filter.js"></script> -->
     <script src="lib/plugin/digilibintegrator.js"></script>
@@ -60,7 +62,26 @@
                     'annotationServerUrl' : 'http://localhost:18080/AnnotationManager/annotator',
                     //'annotationServerUrl' : 'http://tuxserve03.mpiwg-berlin.mpg.de/AnnotationManager/annotator',
                     // URL of authentication token server
-                    'annotationTokenUrl' : 'http://localhost:8080/test/docuviewa/template/token/getLoginToken'
+                    'annotationTokenUrl' : 'http://localhost:8080/test/docuviewa/template/token/getLoginToken',
+                    'annotatorPlugins' : {
+                		'Markdown' : {},
+                        'Permissions' : { 
+                        	//user: data.settings.annotationUser,
+                            userString : function(user) {
+                                if (user && user.name) {
+                                    return user.name;
+                                }
+                                return user;
+                            }, 
+                            userId: function (user) {
+                                if (user && user.id) {
+                                    return user.id;
+                                }
+                                return user;
+                            }
+                        }
+
+                    }
                     };
                 $div.digilib(opts);
 
