@@ -1,0 +1,10 @@
+cd "$(dirname "$0")"
+./annotator.deps
+echo plugin/unsupported
+echo plugin/authlogin
+echo plugin/store
+echo plugin/permissions
+echo plugin/filter
+echo plugin/markdown
+echo plugin/tags
+echo plugin/digilibintegrator
