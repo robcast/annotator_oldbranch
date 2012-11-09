@@ -15,10 +15,8 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
   #
   # Returns nothing.
   pluginInit: ->
-    console.debug "DigilibIntegrator plugin init"
-    
-    # monkey-patch Annotator.setupAnnotation
     @annotator.digilib = @options.hooks
+    # monkey-patch Annotator.setupAnnotation
     @annotator.setupRangeAnnotation = @annotator.setupAnnotation
     @annotator.setupAnnotation = @_setupAnnotation
         
@@ -37,7 +35,6 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
   _setupAnnotation: (annotation, fireEvents=true) ->
       if @selectedAreas? or annotation.areas?
         # do digilib annotations
-        console.debug "setupAnnotation for areas!"
         annotation.areas or= @selectedAreas
         # compatibility crap
         annotation.highlights = []
