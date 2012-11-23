@@ -33,8 +33,10 @@ class Annotator.Plugin.DigilibIntegrator extends Annotator.Plugin
   #
   # Returns the initialised annotation.
   _setupAnnotation: (annotation, fireEvents=true) ->
-      if @selectedAreas? or annotation.areas?
-        # do digilib annotations
+      if @selectedShapes  or annotation.shapes? or @selectedAreas? or annotation.areas?
+        # do digilib annotation shapes
+        annotation.shapes or= @selectedShapes
+        # areas are deprecated
         annotation.areas or= @selectedAreas
         # compatibility crap
         annotation.highlights = []
