@@ -2,3 +2,6 @@
 .cake_task_cache
 *.sublime-workspace
 node_modules
+.do_built.dir
+.redo
+.settings
