@@ -1,3 +1,7 @@
+Annotator = require('annotator')
+Markdown = require('../../../src/plugin/markdown')
+
+
 describe 'Annotator.Plugin.Markdown', ->
   input  = 'Is **this** [Markdown](http://daringfireball.com)?'
   output = '<p>Is <strong>this</strong> <a href="http://daringfireball.com">Markdown</a>?</p>'
@@ -5,31 +9,32 @@ describe 'Annotator.Plugin.Markdown', ->
 
 
   beforeEach ->
-    plugin = new Annotator.Plugin.Markdown($('<div />')[0])
+    plugin = new Markdown($('<div />')[0])
 
   describe "events", ->
     it "should call Markdown#updateTextField() when annotationViewerTextField event is fired", ->
       field = $('<div />')[0]
       annotation = {text: 'test'}
 
-      spyOn(plugin, 'updateTextField')
+      sinon.spy(plugin, 'updateTextField')
       plugin.publish('annotationViewerTextField', [field, annotation])
-      expect(plugin.updateTextField).toHaveBeenCalledWith(field, annotation)
+      assert.isTrue(plugin.updateTextField.calledWith(field, annotation))
 
   describe "constructor", ->
     it "should create a new instance of Showdown", ->
-      expect(plugin.converter).toBeTruthy()
+      assert.ok(plugin.converter)
 
     it "should log an error if Showdown is not loaded", ->
-      spyOn(console, 'error')
+      sinon.stub(console, 'error')
 
       converter = Showdown.converter
       Showdown.converter = null
 
-      plugin = new Annotator.Plugin.Markdown($('<div />')[0])
-      expect(console.error).toHaveBeenCalled()
-      
+      plugin = new Markdown($('<div />')[0])
+      assert(console.error.calledOnce)
+
       Showdown.converter = converter
+      console.error.restore()
 
   describe "updateTextField", ->
     field      = null
@@ -38,20 +43,23 @@ describe 'Annotator.Plugin.Markdown', ->
     beforeEach ->
       field = $('<div />')[0]
       annotation = {text: input}
-      spyOn(plugin, 'convert').andReturn(output)
-      spyOn(Annotator.$, 'escape').andReturn(input)
-      
+      sinon.stub(plugin, 'convert').returns(output)
+      sinon.stub(Annotator.Util, 'escape').returns(input)
+
       plugin.updateTextField(field, annotation)
 
+    afterEach ->
+      Annotator.Util.escape.restore()
+
     it 'should process the annotation text as Markdown', ->
-      expect(plugin.convert).toHaveBeenCalledWith(input)
+      assert.isTrue(plugin.convert.calledWith(input))
 
     it 'should update the content in the field', ->
-      expect($(field).html()).toBe(output)
+      assert.equal($(field).html(), output)
 
     it "should escape any existing HTML to prevent XSS", ->
-      expect(Annotator.$.escape).toHaveBeenCalledWith(input)
+      assert.isTrue(Annotator.Util.escape.calledWith(input))
 
   describe "convert", ->
     it "should convert the provided text into markdown", ->
-      expect(plugin.convert(input)).toBe(output)
+      assert.equal(plugin.convert(input), output)

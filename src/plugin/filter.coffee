@@ -1,3 +1,6 @@
+Annotator = require('annotator')
+
+
 class Annotator.Plugin.Filter extends Annotator.Plugin
   # Events and callbacks to bind to the Filter#element.
   events:
@@ -21,8 +24,8 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
              <div class="annotator-filter">
                <strong>""" + Annotator._t('Navigate:') + """</strong>
                <span class="annotator-filter-navigation">
-                 <button class="annotator-filter-previous">""" + Annotator._t('Previous') + """</button>
-                 <button class="annotator-filter-next">""" + Annotator._t('Next') + """</button>
+                 <button type="button" class="annotator-filter-previous">""" + Annotator._t('Previous') + """</button>
+                 <button type="button" class="annotator-filter-next">""" + Annotator._t('Next') + """</button>
                </span>
                <strong>""" + Annotator._t('Filter by:') + """</strong>
              </div>
@@ -31,7 +34,7 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
              <span class="annotator-filter-property">
                <label></label>
                <input/>
-               <button class="annotator-filter-clear">""" + Annotator._t('Clear') + """</button>
+               <button type="button" class="annotator-filter-clear">""" + Annotator._t('Clear') + """</button>
              </span>
              """
 
@@ -66,7 +69,7 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
     isFiltered: (input, property) ->
       return false unless input and property
 
-      for keyword in (input.split /\s*/)
+      for keyword in (input.split /\s+/)
         return false if property.indexOf(keyword) == -1
 
       return true
@@ -108,6 +111,16 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
 
     if @options.addAnnotationFilter == true
       this.addFilter {label: Annotator._t('Annotation'), property: 'text'}
+
+  # Public: remove the filter plugin instance and unbind events.
+  #
+  # Returns nothing.
+  destroy: ->
+    super
+    html = $('html')
+    currentMargin = parseInt(html.css('padding-top'), 10) || 0
+    html.css('padding-top', currentMargin - @element.outerHeight())
+    @element.remove()
 
   # Adds margin to the current document to ensure that the annotation toolbar
   # doesn't cover the page when not scrolled.
@@ -347,7 +360,7 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
 
     $('html, body').animate({
       scrollTop: highlight.offset().top - (@element.height() + 20)
-    }, 150);
+    }, 150)
 
   # Clears the relevant input when the clear button is clicked.
   #
@@ -356,3 +369,6 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
   # Returns nothing.
   _onClearClick: (event) ->
     $(event.target).prev('input').val('').keyup().blur()
+
+
+module.exports = Annotator.Plugin.Filter

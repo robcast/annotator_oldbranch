@@ -1,3 +1,6 @@
+Util = require './util'
+
+
 # Public: Delegator is the base class that all of Annotators objects inherit
 # from. It provides basic functionality such as instance options, event
 # delegation and pub/sub methods.
@@ -30,14 +33,20 @@ class Delegator
     @options = $.extend(true, {}, @options, options)
     @element = $(element)
 
-    this.on = this.subscribe
+    # Delegator creates closures for each event it binds. This is a private
+    # registry of created closures, used to enable event unbinding.
+    @_closures = {}
+
     this.addEvents()
 
-  # Binds the function names in the @events Object to thier events.
+  # Public: binds the function names in the @events Object to their events.
   #
   # The @events Object should be a set of key/value pairs where the key is the
   # event name with optional CSS selector. The value should be a String method
-  # name on the current class. 
+  # name on the current class.
+  #
+  # This is called by the default Delegator constructor and so shouldn't usually
+  # need to be called by the user.
   #
   # Examples
   #
@@ -49,145 +58,145 @@ class Delegator
   #   @options = {"form submit": "submitForm"}
   #
   #   # This will bind the updateAnnotationStore() method to the custom
-  #   # annotation:save event. NOTE: Because this is a custom event the 
-  #   # Delegator#subscribe() method will be used and updateAnnotationStore() 
+  #   # annotation:save event. NOTE: Because this is a custom event the
+  #   # Delegator#subscribe() method will be used and updateAnnotationStore()
   #   # will not recieve an event parameter like the previous two examples.
   #   @options = {"annotation:save": "updateAnnotationStore"}
   #
   # Returns nothing.
   addEvents: ->
-    for sel, functionName of @events
-      [selector..., event] = sel.split ' '
-      this.addEvent selector.join(' '), event, functionName
+    for event in Delegator._parseEvents(@events)
+      this._addEvent(event.selector, event.event, event.functionName)
 
-  # Binds an event to a callback function represented by a String. An optional
-  # bindTo selector can be provided in order to watch for events on a child
-  # element.
+  # Public: unbinds functions previously bound to events by addEvents().
+  #
+  # The @events Object should be a set of key/value pairs where the key is the
+  # event name with optional CSS selector. The value should be a String method
+  # name on the current class.
+  #
+  # Returns nothing.
+  removeEvents: ->
+    for event in Delegator._parseEvents(@events)
+      this._removeEvent(event.selector, event.event, event.functionName)
+
+  # Binds an event to a callback function represented by a String. A selector
+  # can be provided in order to watch for events on a child element.
   #
   # The event can be any standard event supported by jQuery or a custom String.
-  # If a custom string is used the callback function will not recieve an
-  # event object as it's first parameter.
+  # If a custom string is used the callback function will not receive an event
+  # object as its first parameter.
   #
-  # bindTo       - Selector String matching child elements. (default: @element)
+  # selector     - Selector String matching child elements. (default: '')
   # event        - The event to listen for.
   # functionName - A String function name to bind to the event.
   #
   # Examples
   #
   #   # Listens for all click events on instance.element.
-  #   instance.addEvent('', 'click', 'onClick')
+  #   instance._addEvent('', 'click', 'onClick')
   #
   #   # Delegates the instance.onInputFocus() method to focus events on all
   #   # form inputs within instance.element.
-  #   instance.addEvent('form :input', 'focus', 'onInputFocus')
+  #   instance._addEvent('form :input', 'focus', 'onInputFocus')
   #
   # Returns itself.
-  addEvent: (bindTo, event, functionName) ->
+  _addEvent: (selector, event, functionName) ->
     closure = => this[functionName].apply(this, arguments)
 
-    isBlankSelector = typeof bindTo is 'string' and bindTo.replace(/\s+/g, '') is ''
-
-    bindTo = @element if isBlankSelector
-
-    if typeof bindTo is 'string'
-      @element.delegate bindTo, event, closure
+    if selector == '' and Delegator._isCustomEvent(event)
+      this.subscribe(event, closure)
     else
-      if this.isCustomEvent(event)
-        this.subscribe event, closure
-      else
-        $(bindTo).bind event, closure
+      @element.delegate(selector, event, closure)
+
+    @_closures["#{selector}/#{event}/#{functionName}"] = closure
 
     this
 
-  # Checks to see if the provided event is a DOM event supported by jQuery or
-  # a custom user event.
+  # Unbinds a function previously bound to an event by the _addEvent method.
   #
-  # event - String event name.
+  # Takes the same arguments as _addEvent(), and an event will only be
+  # successfully unbound if the arguments to removeEvent() are exactly the same
+  # as the original arguments to _addEvent(). This would usually be called by
+  # _removeEvents().
   #
-  # Examples
-  #
-  #   this.isCustomEvent('click')              # => false
-  #   this.isCustomEvent('mousedown')          # => false
-  #   this.isCustomEvent('annotation:created') # => true
-  #
-  # Returns true if event is a custom user event.
-  isCustomEvent: (event) ->
-    [event] = event.split('.')
-    $.inArray(event, Delegator.natives) == -1
-
-  # Public: Fires an event and calls all subscribed callbacks with any parameters
-  # provided. This is essentially an alias of @element.triggerHandler() but
-  # should be used to fire custom events.
-  #
-  # NOTE: Events fired using .publish() will not bubble up the DOM.
-  #
-  # event  - A String event name.
-  # params - An Array of parameters to provide to callbacks.
-  #
-  # Examples
-  #
-  #   instance.subscribe('annotation:save', (msg) -> console.log(msg))
-  #   instance.publish('annotation:save', ['Hello World'])
-  #   # => Outputs "Hello World"
+  # selector     - Selector String matching child elements. (default: '')
+  # event        - The event to listen for.
+  # functionName - A String function name to bind to the event.
   #
   # Returns itself.
-  publish: () ->
-    @element.triggerHandler.apply @element, arguments
+  _removeEvent: (selector, event, functionName) ->
+    closure = @_closures["#{selector}/#{event}/#{functionName}"]
+
+    if selector == '' and Delegator._isCustomEvent(event)
+      this.unsubscribe(event, closure)
+    else
+      @element.undelegate(selector, event, closure)
+
+    delete @_closures["#{selector}/#{event}/#{functionName}"]
+
     this
 
-  # Public: Listens for custom event which when published will call the provided
-  # callback. This is essentially a wrapper around @element.bind() but removes
-  # the event parameter that jQuery event callbacks always recieve. These
-  # parameters are unnessecary for custom events.
-  #
-  # event    - A String event name.
-  # callback - A callback function called when the event is published.
-  #
-  # Examples
-  #
-  #   instance.subscribe('annotation:save', (msg) -> console.log(msg))
-  #   instance.publish('annotation:save', ['Hello World'])
-  #   # => Outputs "Hello World"
-  #
-  # Returns itself.
-  subscribe: (event, callback) ->
-    closure = -> callback.apply(this, [].slice.call(arguments, 1))
+  # Public: Fires an event and calls all subscribed callbacks with parameters
+  # provided. This is essentially an alias to Backbone.Events .trigger()
+  # except that the arguments are passed in an Array as the second parameter
+  # rather than using a variable number of arguments.
+  publish: (name, args=[]) ->
+    this.trigger.apply(this, [name, args...])
 
-    # Ensure both functions have the same unique id so that jQuery will accept
-    # callback when unbinding closure.
-    closure.guid = callback.guid = ($.guid += 1)
+  # Public: An alias for .on() from Backbone.Events
+  subscribe: (event, callback, context=this) ->
+    this.on(event, callback, context)
 
-    @element.bind event, closure
-    this
+  # Public: An alias for .off() from Backbone.Events
+  unsubscribe: (event, callback, context=this) ->
+    this.off(event, callback, context)
 
-  # Public: Unsubscribes a callback from an event. The callback will no longer
-  # be called when the event is published.
-  #
-  # event    - A String event name.
-  # callback - A callback function to be removed.
-  #
-  # Examples
-  #
-  #   callback = (msg) -> console.log(msg)
-  #   instance.subscribe('annotation:save', callback)
-  #   instance.publish('annotation:save', ['Hello World'])
-  #   # => Outputs "Hello World"
-  #
-  #   instance.unsubscribe('annotation:save', callback)
-  #   instance.publish('annotation:save', ['Hello Again'])
-  #   # => No output.
-  #
-  # Returns itself.
-  unsubscribe: ->
-    @element.unbind.apply @element, arguments
-    this
+
+# Parse the @events object of a Delegator into an array of objects containing
+# string-valued "selector", "event", and "func" keys.
+Delegator._parseEvents = (eventsObj) ->
+    events = []
+    for sel, functionName of eventsObj
+      [selector..., event] = sel.split ' '
+      events.push({
+        selector: selector.join(' '),
+        event: event,
+        functionName: functionName
+      })
+    return events
+
 
 # Native jQuery events that should recieve an event object. Plugins can
-# add thier own methods to this if required.
+# add their own methods to this if required.
 Delegator.natives = do ->
-  specials = (key for own key, val of jQuery.event.special)
+  specials = (key for own key, val of $.event.special)
   """
   blur focus focusin focusout load resize scroll unload click dblclick
   mousedown mouseup mousemove mouseover mouseout mouseenter mouseleave
   change select submit keydown keypress keyup error
   """.split(/[^a-z]+/).concat(specials)
+
+
+# Checks to see if the provided event is a DOM event supported by jQuery or
+# a custom user event.
+#
+# event - String event name.
+#
+# Examples
+#
+#   Delegator._isCustomEvent('click')              # => false
+#   Delegator._isCustomEvent('mousedown')          # => false
+#   Delegator._isCustomEvent('annotation:created') # => true
+#
+# Returns true if event is a custom user event.
+Delegator._isCustomEvent = (event) ->
+  [event] = event.split('.')
+  $.inArray(event, Delegator.natives) == -1
+
+
+# Mix in backbone events
+BackboneEvents = require 'backbone-events-standalone'
+BackboneEvents.mixin(Delegator::)
+
+# Export Delegator object
+module.exports = Delegator

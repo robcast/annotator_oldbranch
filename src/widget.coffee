@@ -1,6 +1,10 @@
+Delegator = require './class'
+Util = require './util'
+
+
 # Public: Base class for the Editor and Viewer elements. Contains methods that
 # are shared between the two.
-class Annotator.Widget extends Delegator
+class Widget extends Delegator
   # Classes used to alter the widgets state.
   classes:
     hide: 'annotator-hide'
@@ -21,12 +25,19 @@ class Annotator.Widget extends Delegator
   # Returns a new Widget instance.
   constructor: (element, options) ->
     super
-    @classes = $.extend {}, Annotator.Widget.prototype.classes, @classes
+    @classes = $.extend {}, Widget.prototype.classes, @classes
+
+  # Public: Unbind the widget's events and remove its element from the DOM.
+  #
+  # Returns nothing.
+  destroy: ->
+    this.removeEvents()
+    @element.remove()
 
   checkOrientation: ->
     this.resetOrientation()
 
-    window   = $(util.getGlobal())
+    window   = $(Util.getGlobal())
     widget   = @element.children(":first")
     offset   = widget.offset()
     viewport = {
@@ -91,3 +102,6 @@ class Annotator.Widget extends Delegator
   isInvertedX: ->
     @element.hasClass @classes.invert.x
 
+
+# Export the Widget object
+module.exports = Widget

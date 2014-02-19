@@ -1,3 +1,6 @@
+Annotator = require('annotator')
+
+
 # Public: Tags plugin allows users to tag thier annotations with metadata
 # stored in an Array on the annotation as tags.
 class Annotator.Plugin.Tags extends Annotator.Plugin
@@ -135,7 +138,7 @@ class Annotator.Plugin.Tags extends Annotator.Plugin
     if annotation.tags and $.isArray(annotation.tags) and annotation.tags.length
       field.addClass('annotator-tags').html(->
         string = $.map(annotation.tags,(tag) ->
-            '<span class="annotator-tag">' + Annotator.$.escape(tag) + '</span>'
+            '<span class="annotator-tag">' + Annotator.Util.escape(tag) + '</span>'
         ).join(' ')
       )
     else
@@ -163,3 +166,6 @@ Annotator.Plugin.Tags.filterCallback = (input, tags = []) ->
       matches += 1 for tag in tags when tag.indexOf(keyword) != -1
 
   matches == keywords.length
+
+
+module.exports = Annotator.Plugin.Tags

@@ -1,14 +1,18 @@
-describe 'Annotator.Notification', ->
+Notification = require('../../src/notification')
+
+
+describe 'Notification', ->
   notification = null
 
   beforeEach ->
-    notification = new Annotator.Notification()
+    notification = new Notification()
 
   afterEach ->
     notification.element.remove()
 
-  it 'should be appended to the document.body', ->
-    expect(notification.element[0].parentNode).toEqual(document.body)
+  it 'should be appended to the document body when needed', ->
+    notification.show('test')
+    assert.equal(notification.element[0].parentNode, document.body)
 
   describe '.show()', ->
     message = 'This is a notification message'
@@ -17,14 +21,21 @@ describe 'Annotator.Notification', ->
       notification.show(message)
 
     it 'should have a class named "annotator-notice-show"', ->
-      expect(notification.element.hasClass('annotator-notice-show')).toBeTruthy()
+      assert.isTrue(notification.element.hasClass('annotator-notice-show'))
+
+    it 'should have a class named "annotator-notice-info"', ->
+      assert.isTrue(notification.element.hasClass('annotator-notice-info'))
 
     it 'should update the notification message', ->
-      expect(notification.element.html()).toEqual(message)
+      assert.equal(notification.element.html(), message)
 
   describe '.hide()', ->
     beforeEach ->
+      notification.show()
       notification.hide()
 
-    it 'should not have a class named "show"', ->
-      expect(notification.element.hasClass('show')).toBeFalsy()
+    it 'should not have a class named "annotator-notice-show"', ->
+      assert.isFalse(notification.element.hasClass('annotator-notice-show'))
+
+    it 'should not have a class named "annotator-notice-info"', ->
+      assert.isFalse(notification.element.hasClass('annotator-notice-info'))

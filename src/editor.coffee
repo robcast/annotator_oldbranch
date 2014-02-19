@@ -1,5 +1,12 @@
+Util = require './util'
+Widget = require './widget'
+
+
+_t = Util.TranslationString
+
+
 # Public: Creates an element for editing annotations.
-class Annotator.Editor extends Annotator.Widget
+class Editor extends Widget
 
   # Events to be bound to @element.
   events:
@@ -72,7 +79,7 @@ class Annotator.Editor extends Annotator.Widget
   #
   # Returns itself.
   show: (event) =>
-    util.preventEventDefault event
+    Util.preventEventDefault event
 
     @element.removeClass(@classes.hide)
     @element.find('.annotator-save').addClass(@classes.focus)
@@ -104,7 +111,7 @@ class Annotator.Editor extends Annotator.Widget
   #
   # Returns itself.
   hide: (event) =>
-    util.preventEventDefault event
+    Util.preventEventDefault event
 
     @element.addClass(@classes.hide)
     this.publish('hide')
@@ -161,7 +168,7 @@ class Annotator.Editor extends Annotator.Widget
   #
   # Returns itself.
   submit: (event) =>
-    util.preventEventDefault event
+    Util.preventEventDefault event
 
     for field in @fields
       field.submit(field.element, @annotation)
@@ -177,8 +184,8 @@ class Annotator.Editor extends Annotator.Widget
   #           id     - A unique id for the form element will also be set as the
   #                    "for" attrubute of a label if there is one. Defaults to
   #                    a timestamp. (default: "annotator-field-{timestamp}")
-  #           type   - Input type String. One of "input", "textarea", "checkbox"
-  #                    (default: "input")
+  #           type   - Input type String. One of "input", "textarea",
+  #                    "checkbox", "select" (default: "input")
   #           label  - Label to display either in a label Element or as place-
   #                    holder text depending on the type. (default: "")
   #           load   - Callback Function called when the editor is loaded with a
@@ -227,7 +234,7 @@ class Annotator.Editor extends Annotator.Widget
   # Returns the created <li> Element.
   addField: (options) ->
     field = $.extend({
-      id:     'annotator-field-' + util.uuid()
+      id:     'annotator-field-' + Util.uuid()
       type:   'input'
       label:  ''
       load:   ->
@@ -241,8 +248,9 @@ class Annotator.Editor extends Annotator.Widget
     switch (field.type)
       when 'textarea'          then input = $('<textarea />')
       when 'input', 'checkbox' then input = $('<input />')
+      when 'select' then input = $('<select />')
 
-    element.append(input);
+    element.append(input)
 
     input.attr({
       id: field.id
@@ -292,7 +300,7 @@ class Annotator.Editor extends Annotator.Widget
   #
   # Returns nothing
   onCancelButtonMouseover: =>
-    @element.find('.' + @classes.focus).removeClass(@classes.focus);
+    @element.find('.' + @classes.focus).removeClass(@classes.focus)
 
   # Sets up mouse events for resizing and dragging the editor window.
   # window events are bound only when needed and throttled to only update
@@ -334,10 +342,10 @@ class Annotator.Editor extends Annotator.Widget
           'mouseup.annotator-editor-resize':   onMouseup
           'mousemove.annotator-editor-resize': onMousemove
         })
-        event.preventDefault();
+        event.preventDefault()
 
     onMouseup = ->
-      mousedown = null;
+      mousedown = null
       $(window).unbind '.annotator-editor-resize'
 
     onMousemove = (event) =>
@@ -375,7 +383,11 @@ class Annotator.Editor extends Annotator.Widget
         throttle = true;
         setTimeout(->
           throttle = false
-        , 1000/60);
+        , 1000/60)
 
     resize.bind   'mousedown', onMousedown
     controls.bind 'mousedown', onMousedown
+
+
+# Export the Editor object
+module.exports = Editor

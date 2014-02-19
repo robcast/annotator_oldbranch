@@ -1,3 +1,6 @@
+Annotator = require('annotator')
+
+
 # Plugin that renders annotation comments displayed in the Viewer in Markdown.
 # Requires Showdown library to be present in the page when initialised.
 class Annotator.Plugin.Markdown extends Annotator.Plugin
@@ -37,7 +40,7 @@ class Annotator.Plugin.Markdown extends Annotator.Plugin
   # Returns nothing
   updateTextField: (field, annotation) =>
     # Escape any HTML in the text to prevent XSS.
-    text = Annotator.$.escape(annotation.text || '')
+    text = Annotator.Util.escape(annotation.text || '')
     $(field).html(this.convert(text))
 
   # Converts provided text into markdown.
@@ -52,3 +55,6 @@ class Annotator.Plugin.Markdown extends Annotator.Plugin
   # Returns HTML string.
   convert: (text) ->
     @converter.makeHtml text
+
+
+module.exports = Annotator.Plugin.Markdown

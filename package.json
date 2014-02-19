@@ -1,17 +1,41 @@
 {
   "name": "annotator",
-  "version": "1.2.5",
+  "version": "2.0.0-dev",
   "description": "Inline annotation for the web. Select text, images, or (nearly) anything else, and add your notes.",
-  "repositories": [
-    {
-      "type": "git",
-      "url": "https://github.com/okfn/annotator.git"
-    }
-  ],
-  "devDependencies": {
-    "coffee-script": "1.2.0",
-    "uglify-js": "1.2.5",
-    "uglifycss": "0.0.5"
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/okfn/annotator.git"
   },
-  "engines": { "node" : "~0.6.0" }
+  "dependencies": {
+    "through": "~2.3.4"
+  },
+  "devDependencies": {
+    "backbone-events-standalone": "~0.2.1",
+    "backbone-extend-standalone": "~0.1.2",
+    "coffee-script": "~1.6.0",
+    "uglify-js": "~2.3.6",
+    "uglifycss": "~0.0.5",
+    "mocha": "~1.12.0",
+    "mocha-phantomjs": "~3.3.1",
+    "chai": "~1.7.0",
+    "sinon": "~1.6.0",
+    "jwt-simple": "~0.1.0",
+    "iso8601": "~1.1.1",
+    "connect": "~2.10.1",
+    "browserify": "~2.35.2",
+    "caching-coffeeify": "~0.3.0",
+    "convert-source-map": "~0.3.1",
+    "glob": "~3.2.6",
+    "kew": "~0.2.2",
+    "source-map": "~0.1.31",
+    "watchify": "~0.3.0"
+  },
+  "engines": {
+    "node": ">=0.8 <0.12"
+  },
+  "scripts": {
+    "start": "./tools/serve",
+    "test": "./tools/test"
+  },
+  "browser": "./lib/annotator"
 }

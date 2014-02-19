@@ -1,3 +1,6 @@
+Annotator = require('annotator')
+
+
 # Public: Plugin for setting permissions on newly created annotations as well as
 # managing user permissions such as viewing/editing/deleting annotions.
 #
@@ -13,11 +16,6 @@
 #
 # Returns a new instance of the Permissions Object.
 class Annotator.Plugin.Permissions extends Annotator.Plugin
-
-  # A Object literal consisting of event/method pairs to be bound to
-  # @element. See Delegator#addEvents() for details.
-  events:
-    'beforeAnnotationCreated': 'addFieldsToAnnotation'
 
   # A Object literal of default options for the class.
   options:
@@ -110,7 +108,10 @@ class Annotator.Plugin.Permissions extends Annotator.Plugin
 
       # Coarse-grained authorization
       else if annotation.user
-        return user and this.userId(user) == this.userId(annotation.user)
+        if user
+          return this.userId(user) == this.userId(annotation.user)
+        else
+          return false
 
       # No authorization info on annotation: free-for-all!
       true
@@ -147,6 +148,8 @@ class Annotator.Plugin.Permissions extends Annotator.Plugin
   # Returns nothing.
   pluginInit: ->
     return unless Annotator.supported()
+
+    @annotator.subscribe('beforeAnnotationCreated', this.addFieldsToAnnotation)
 
     self = this
     createCallback = (method, type) ->
@@ -282,7 +285,7 @@ class Annotator.Plugin.Permissions extends Annotator.Plugin
       # but our UI presents a checkbox, so we can only interpret "prevent others
       # from viewing" as meaning "allow only me to view". This may want changing
       # in the future.
-      annotation.permissions[type] = [@user]
+      annotation.permissions[type] = [@options.userId(@user)]
 
   # Field callback: updates the annotation viewer to inlude the display name
   # for the user obtained through Permissions#options.userString().
@@ -297,7 +300,7 @@ class Annotator.Plugin.Permissions extends Annotator.Plugin
 
     username = @options.userString annotation.user
     if annotation.user and username and typeof username == 'string'
-      user = Annotator.$.escape(@options.userString(annotation.user))
+      user = Annotator.Util.escape(@options.userString(annotation.user))
       field.html(user).addClass('annotator-user')
     else
       field.remove()
@@ -314,3 +317,5 @@ class Annotator.Plugin.Permissions extends Annotator.Plugin
   _setAuthFromToken: (token) =>
     this.setUser(token.userId)
 
+
+module.exports = Annotator.Plugin.Permissions

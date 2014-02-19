@@ -1,40 +1,31 @@
+extend = require 'backbone-extend-standalone'
+
+Delegator = require './class'
+Range = require './range'
+Util = require './util'
+Widget = require './widget'
+Viewer = require './viewer'
+Editor = require './editor'
+Notification = require './notification'
+Registry = require './registry'
+
+AnnotationProvider = require './annotations'
+
+_t = Util.TranslationString
+
+
+
 # Selection and range creation reference for the following code:
 # http://www.quirksmode.org/dom/range_intro.html
 #
 # I've removed any support for IE TextRange (see commit d7085bf2 for code)
 # for the moment, having no means of testing it.
 
-util =
-  uuid: (-> counter = 0; -> counter++)()
-
-  getGlobal: -> (-> this)()
-
-  # Return the maximum z-index of any element in $elements (a jQuery collection).
-  maxZIndex: ($elements) ->
-    all = for el in $elements
-            if $(el).css('position') == 'static'
-              -1
-            else
-              parseInt($(el).css('z-index'), 10) or -1
-    Math.max.apply(Math, all)
-
-  mousePosition: (e, offsetEl) ->
-    offset = $(offsetEl).offset()
-    {
-      top:  e.pageY - offset.top,
-      left: e.pageX - offset.left
-    }
-
-  # Checks to see if an event parameter is provided and contains the prevent
-  # default method. If it does it calls it.
-  #
-  # This is useful for methods that can be optionally used as callbacks
-  # where the existance of the parameter must be checked before calling.
-  preventEventDefault: (event) ->
-    event?.preventDefault?()
-
 # Store a reference to the current Annotator object.
 _Annotator = this.Annotator
+
+handleError = ->
+  console.error.apply(console, arguments)
 
 class Annotator extends Delegator
   # Events to be bound on Annotator#element.
@@ -45,11 +36,16 @@ class Annotator extends Delegator
     ".annotator-hl mouseout":            "startViewerHideTimer"
 
   html:
-    adder:   '<div class="annotator-adder"><button>' + _t('Annotate') + '</button></div>'
+    adder:   '<div class="annotator-adder"><button type="button">' + _t('Annotate') + '</button></div>'
     wrapper: '<div class="annotator-wrapper"></div>'
 
   options: # Configuration options
+
+    store: null # Store plugin to use. If null, Annotator will use a default store.
+
     readOnly: false # Start Annotator in read-only mode. No controls will be shown.
+
+    loadQuery: {} # Initial query to load Annotations
 
   plugins: {}
 
@@ -92,14 +88,38 @@ class Annotator extends Delegator
     super
     @plugins = {}
 
+    Annotator._instances.push(this)
+
     # Return early if the annotator is not supported.
     return this unless Annotator.supported()
-    this._setupDocumentEvents() unless @options.readOnly
-    this._setupWrapper()._setupViewer()._setupEditor()
-    this._setupDynamicStyle()
 
-    # Create adder
-    this.adder = $(this.html.adder).appendTo(@wrapper).hide()
+    # Create the registry and start the application
+    Registry.createApp(this, options)
+
+  # Public: Creates a subclass of Annotator.
+  #
+  # See the documentation from Backbone: http://backbonejs.org/#Model-extend
+  #
+  # Examples
+  #
+  #   var ExtendedAnnotator = Annotator.extend({
+  #     setupAnnotation: function (annotation) {
+  #       // Invoke the built-in implementation
+  #       try {
+  #         Annotator.prototype.setupAnnotation.call(this, annotation);
+  #       } catch (e) {
+  #         if (e instanceof Annotator.Range.RangeError) {
+  #           // Try to locate the Annotation using the quote
+  #         } else {
+  #           throw e;
+  #         }
+  #       }
+  #
+  #       return annotation;
+  #   });
+  #
+  #   var annotator = new ExtendedAnnotator(document.body, /* {options} */);
+  @extend: extend
 
   # Wraps the children of @element in a @wrapper div. NOTE: This method will also
   # remove any script elements inside @element to prevent them re-executing.
@@ -126,11 +146,19 @@ class Annotator extends Delegator
     @viewer = new Annotator.Viewer(readOnly: @options.readOnly)
     @viewer.hide()
       .on("edit", this.onEditAnnotation)
-      .on("delete", this.onDeleteAnnotation)
+      .on("delete", (annotation) =>
+        @viewer.hide()
+        this.publish('beforeAnnotationDeleted', [annotation])
+        # Delete highlight elements.
+        this.cleanupAnnotation(annotation)
+        # Delete annotation
+        this.annotations.delete(annotation)
+          .done => this.publish('annotationDeleted', [annotation])
+      )
       .addField({
         load: (field, annotation) =>
           if annotation.text
-            $(field).escape(annotation.text)
+            $(field).html(Util.escape(annotation.text))
           else
             $(field).html("<i>#{_t 'No Comment'}</i>")
           this.publish('annotationViewerTextField', [field, annotation])
@@ -184,7 +212,7 @@ class Annotator extends Delegator
     sel = '*' + (":not(.annotator-#{x})" for x in ['adder', 'outer', 'notice', 'filter']).join('')
 
     # use the maximum z-index in the page
-    max = util.maxZIndex($(document.body).find(sel))
+    max = Util.maxZIndex($(document.body).find(sel))
 
     # but don't go smaller than 1010, because this isn't bulletproof --
     # dynamic elements in the page (notifications, dialogs, etc.) may well
@@ -202,6 +230,48 @@ class Annotator extends Delegator
 
     this
 
+  # Public: Load and draw annotations from a given query.
+  #
+  # query - the query to pass to the backend
+  #
+  # Returns a Promise that resolves when loading is complete.
+  load: (query) ->
+    @annotations.load(query)
+      .then (annotations, meta) =>
+        this.loadAnnotations(annotations)
+
+  # Public: Destroy the current Annotator instance, unbinding all events and
+  # disposing of all relevant elements.
+  #
+  # Returns nothing.
+  destroy: ->
+    $(document).unbind({
+      "mouseup":   this.checkForEndSelection
+      "mousedown": this.checkForStartSelection
+    })
+
+    $('#annotator-dynamic-style').remove()
+
+    @adder.remove()
+    @viewer.destroy()
+    @editor.destroy()
+
+    @wrapper.find('.annotator-hl').each ->
+      $(this).contents().insertBefore(this)
+      $(this).remove()
+
+    @wrapper.contents().insertBefore(@wrapper)
+    @wrapper.remove()
+    @element.data('annotator', null)
+
+    for name, plugin of @plugins
+      @plugins[name].destroy()
+
+    this.removeEvents()
+    idx = Annotator._instances.indexOf(this)
+    if idx != -1
+      Annotator._instances.splice(idx, 1)
+
   # Public: Gets the current selection excluding any nodes that fall outside of
   # the @wrapper. Then returns and Array of NormalizedRange instances.
   #
@@ -217,7 +287,7 @@ class Annotator extends Delegator
   #
   # Returns Array of NormalizedRange instances.
   getSelectedRanges: ->
-    selection = util.getGlobal().getSelection()
+    selection = Util.getGlobal().getSelection()
 
     ranges = []
     rangesToIgnore = []
@@ -248,35 +318,16 @@ class Annotator extends Delegator
       selection.addRange(range.toRange()) if range
       range
 
-  # Public: Creates and returns a new annotation object. Publishes the
-  # 'beforeAnnotationCreated' event to allow the new annotation to be modified.
-  #
-  # Examples
-  #
-  #   annotator.createAnnotation() # Returns {}
-  #
-  #   annotator.on 'beforeAnnotationCreated', (annotation) ->
-  #     annotation.myProperty = 'This is a custom property'
-  #   annotator.createAnnotation() # Returns {myProperty: "This is a…"}
-  #
-  # Returns a newly created annotation Object.
-  createAnnotation: () ->
-    annotation = {}
-    this.publish('beforeAnnotationCreated', [annotation])
-    annotation
 
-  # Public: Initialises an annotation either from an object representation or
-  # an annotation created with Annotator#createAnnotation(). It finds the
-  # selected range and higlights the selection in the DOM.
+  # Public: Initialises an annotation from an object representation. It finds
+  # the selected range and higlights the selection in the DOM.
   #
   # annotation - An annotation Object to initialise.
-  # fireEvents - Will fire the 'annotationCreated' event if true.
   #
   # Examples
   #
   #   # Create a brand new annotation from the currently selected text.
-  #   annotation = annotator.createAnnotation()
-  #   annotation = annotator.setupAnnotation(annotation)
+  #   annotation = annotator.setupAnnotation({ranges: annotator.selectedRanges})
   #   # annotation has now been assigned the currently selected range
   #   # and a highlight appended to the DOM.
   #
@@ -285,9 +336,8 @@ class Annotator extends Delegator
   #   annotation = annotator.setupAnnotation(annotation)
   #
   # Returns the initialised annotation.
-  setupAnnotation: (annotation, fireEvents=true) ->
+  setupAnnotation: (annotation) ->
     root = @wrapper[0]
-    annotation.ranges or= @selectedRanges
 
     normedRanges = []
     for r in annotation.ranges
@@ -302,58 +352,33 @@ class Annotator extends Delegator
 
     annotation.quote      = []
     annotation.ranges     = []
-    annotation.highlights = []
+    annotation._local = {}
+    annotation._local.highlights = []
 
     for normed in normedRanges
       annotation.quote.push      $.trim(normed.text())
       annotation.ranges.push     normed.serialize(@wrapper[0], '.annotator-hl')
-      $.merge annotation.highlights, this.highlightRange(normed)
+      $.merge annotation._local.highlights, this.highlightRange(normed)
 
     # Join all the quotes into one string.
     annotation.quote = annotation.quote.join(' / ')
 
     # Save the annotation data on each highlighter element.
-    $(annotation.highlights).data('annotation', annotation)
+    $(annotation._local.highlights).data('annotation', annotation)
 
-    # Fire annotationCreated events so that plugins can react to them.
-    if fireEvents
-      this.publish('annotationCreated', [annotation])
-
-    annotation
-
-  # Public: Publishes the 'beforeAnnotationUpdated' and 'annotationUpdated'
-  # events. Listeners wishing to modify an updated annotation should subscribe
-  # to 'beforeAnnotationUpdated' while listeners storing annotations should
-  # subscribe to 'annotationUpdated'.
-  #
-  # annotation - An annotation Object to update.
-  #
-  # Examples
-  #
-  #   annotation = {tags: 'apples oranges pears'}
-  #   annotator.on 'beforeAnnotationUpdated', (annotation) ->
-  #     # validate or modify a property.
-  #     annotation.tags = annotation.tags.split(' ')
-  #   annotator.updateAnnotation(annotation)
-  #   # => Returns ["apples", "oranges", "pears"]
-  #
-  # Returns annotation Object.
-  updateAnnotation: (annotation) ->
-    this.publish('beforeAnnotationUpdated', [annotation])
-    this.publish('annotationUpdated', [annotation])
     annotation
 
   # Public: Deletes the annotation by removing the highlight from the DOM.
-  # Publishes the 'annotationDeleted' event on completion.
   #
   # annotation - An annotation Object to delete.
   #
   # Returns deleted annotation.
-  deleteAnnotation: (annotation) ->
-    for h in annotation.highlights
-      $(h).replaceWith(h.childNodes)
+  cleanupAnnotation: (annotation) ->
+    if annotation._local?.highlights?
+      for h in annotation._local.highlights when h.parentNode?
+        $(h).replaceWith(h.childNodes)
+      delete annotation._local.highlights
 
-    this.publish('annotationDeleted', [annotation])
     annotation
 
   # Public: Loads an Array of annotations into the @element. Breaks the task
@@ -372,7 +397,7 @@ class Annotator extends Delegator
       now = annList.splice(0,10)
 
       for n in now
-        this.setupAnnotation(n, false) # 'false' suppresses event firing
+        this.setupAnnotation(n)
 
       # If there are more to do, do them after a 10ms break (for browser
       # responsiveness).
@@ -382,7 +407,8 @@ class Annotator extends Delegator
         this.publish 'annotationsLoaded', [clone]
 
     clone = annotations.slice()
-    loader(annotations) if annotations.length
+    loader annotations
+
     this
 
   # Public: Calls the Store#dumpAnnotations() method.
@@ -393,6 +419,7 @@ class Annotator extends Delegator
       @plugins['Store'].dumpAnnotations()
     else
       console.warn(_t("Can't dump annotations without Store plugin."))
+      return false
 
   # Public: Wraps the DOM Nodes within the provided range with a highlight
   # element of the specified class and returns the highlight Elements.
@@ -462,6 +489,22 @@ class Annotator extends Delegator
         console.error _t("Could not load ") + name + _t(" plugin. Have you included the appropriate <script> tag?")
     this # allow chaining
 
+  # Public: Waits for the @editor to submit or hide, returning a promise that
+  # is resolved or rejected depending on whether the annotation was saved or
+  # cancelled.
+  editAnnotation: (annotation, position) ->
+    dfd = $.Deferred()
+    resolve = dfd.resolve.bind(dfd, annotation)
+    reject = dfd.reject.bind(dfd, annotation)
+
+    this.showEditor(annotation, position)
+    this.subscribe('annotationEditorSubmit', resolve)
+    this.once 'annotationEditorHidden', =>
+      this.unsubscribe('annotationEditorSubmit', resolve)
+      reject() if dfd.state() is 'pending'
+
+    dfd.promise()
+
   # Public: Loads the @editor with the provided annotation and updates its
   # position in the window.
   #
@@ -495,11 +538,6 @@ class Annotator extends Delegator
   # Returns nothing.
   onEditorSubmit: (annotation) =>
     this.publish('annotationEditorSubmit', [@editor, annotation])
-
-    if annotation.ranges == undefined
-      this.setupAnnotation(annotation)
-    else
-      this.updateAnnotation(annotation)
 
   # Public: Loads the @viewer with an Array of annotations and positions it
   # at the location provided. Calls the 'annotationViewerShown' event.
@@ -549,7 +587,7 @@ class Annotator extends Delegator
   checkForStartSelection: (event) =>
     unless event and this.isAnnotator(event.target)
       this.startViewerHideTimer()
-      @mouseIsDown = true
+    @mouseIsDown = true
 
   # Annotator#element callback. Checks to see if a selection has been made
   # on mouseup and if so displays the Annotator#adder. If @ignoreMouseup is
@@ -572,12 +610,12 @@ class Annotator extends Delegator
     for range in @selectedRanges
       container = range.commonAncestor
       if $(container).hasClass('annotator-hl')
-        container = $(container).parents('[class^=annotator-hl]')[0]
+        container = $(container).parents('[class!=annotator-hl]')[0]
       return if this.isAnnotator(container)
 
     if event and @selectedRanges.length
       @adder
-        .css(util.mousePosition(event, @wrapper[0]))
+        .css(Util.mousePosition(event, @wrapper[0]))
         .show()
     else
       @adder.hide()
@@ -597,7 +635,22 @@ class Annotator extends Delegator
   #
   # Returns true if the element is a child of an annotator element.
   isAnnotator: (element) ->
-    !!$(element).parents().andSelf().filter('[class^=annotator-]').not(@wrapper).length
+    !!$(element).parents().addBack().filter('[class^=annotator-]').not(@wrapper).length
+
+  configure: (@registry) ->
+    registry.include(AnnotationProvider)
+
+  run: (@registry) ->
+    # Set up the core interface components
+    this._setupDocumentEvents() unless @options.readOnly
+    this._setupWrapper()._setupViewer()._setupEditor()
+    this._setupDynamicStyle()
+
+    # Create adder
+    this.adder = $(this.html.adder).appendTo(@wrapper).hide()
+
+    # Do initial load
+    if @options.loadQuery then this.load(@options.loadQuery)
 
   # Annotator#element callback. Displays viewer with all annotations
   # associated with highlight Elements under the cursor.
@@ -615,10 +668,10 @@ class Annotator extends Delegator
 
     annotations = $(event.target)
       .parents('.annotator-hl')
-      .andSelf()
+      .addBack()
       .map -> return $(this).data("annotation")
 
-    this.showViewer($.makeArray(annotations), util.mousePosition(event, @wrapper[0]))
+    this.showViewer($.makeArray(annotations), Util.mousePosition(event, @wrapper[0]))
 
   # Annotator#element callback. Sets @ignoreMouseup to true to prevent
   # the annotation selection events firing when the adder is clicked.
@@ -643,18 +696,38 @@ class Annotator extends Delegator
     # Hide the adder
     position = @adder.position()
     @adder.hide()
+    annotation = {ranges: @selectedRanges}
 
-    # Show a temporary highlight so the user can see what they selected
-    if @selectedRanges and @selectedRanges.length
-      ranges = (Range.sniff(r).normalize() for r in @selectedRanges)
-      highlights = this.highlightRanges(ranges, 'annotator-hl annotator-hl-temporary')
+    $.when(annotation)
 
-      @editor.element.one 'hide', ->
-        for h in highlights
-          $(h).replaceWith(h.childNodes)
+      .done (annotation) =>
+        this.publish('beforeAnnotationCreated', [annotation])
 
-    # Create an annotation and display the editor.
-    this.showEditor(this.createAnnotation(), position)
+      # Set up the annotation
+      .then (annotation) =>
+        this.setupAnnotation(annotation)
+
+      # Show a temporary highlight so the user can see what they selected
+      .done (annotation) =>
+        $(annotation._local.highlights).addClass('annotator-hl-temporary')
+
+      # Edit the annotation
+      .then (annotation) =>
+        this.editAnnotation(annotation, position)
+      .then (annotation) =>
+        this.annotations.create(annotation)
+          # Handle storage errors
+          .fail(handleError)
+
+      # Clean up the highlights
+      .done (annotation) =>
+        $(annotation._local.highlights).removeClass('annotator-hl-temporary')
+
+      .done (annotation) =>
+        this.publish('annotationCreated', [annotation])
+
+      # Clean up (if, for example, editing was cancelled, or storage failed)
+      .fail(this.cleanupAnnotation)
 
   # Annotator#viewer callback function. Displays the Annotator#editor in the
   # positions of the Annotator#viewer and loads the passed annotation for
@@ -664,23 +737,23 @@ class Annotator extends Delegator
   #
   # Returns nothing.
   onEditAnnotation: (annotation) =>
-    offset = @viewer.element.position()
-
-    # Replace the viewer with the editor.
-    @viewer.hide()
-    this.showEditor(annotation, offset)
-
-  # Annotator#viewer callback function. Deletes the annotation provided to the
-  # callback.
-  #
-  # annotation - An annotation Object for deletion.
-  #
-  # Returns nothing.
-  onDeleteAnnotation: (annotation) =>
+    position = @viewer.element.position()
     @viewer.hide()
 
-    # Delete highlight elements.
-    this.deleteAnnotation annotation
+    $.when(annotation)
+
+      .done (annotation) =>
+        this.publish('beforeAnnotationUpdated', [annotation])
+
+      .then (annotation) =>
+        this.editAnnotation(annotation, position)
+      .then (annotation) =>
+        this.annotations.update(annotation)
+          # Handle storage errors
+          .fail(handleError)
+
+      .done (annotation) =>
+        this.publish('annotationUpdated', [annotation])
 
 # Create namespace for Annotator plugins
 class Annotator.Plugin extends Delegator
@@ -689,8 +762,11 @@ class Annotator.Plugin extends Delegator
 
   pluginInit: ->
 
+  destroy: ->
+    this.removeEvents()
+
 # Sniff the browser environment and attempt to add missing functionality.
-g = util.getGlobal()
+g = Util.getGlobal()
 
 if not g.document?.evaluate?
   $.getScript('http://assets.annotateit.org/vendor/xpath.min.js')
@@ -701,12 +777,39 @@ if not g.getSelection?
 if not g.JSON?
   $.getScript('http://assets.annotateit.org/vendor/json2.min.js')
 
-# Bind our local copy of jQuery so plugins can use the extensions.
-Annotator.$ = $
+# Ensure the Node constants are defined
+if not g.Node?
+  g.Node =
+    ELEMENT_NODE                :  1
+    ATTRIBUTE_NODE              :  2
+    TEXT_NODE                   :  3
+    CDATA_SECTION_NODE          :  4
+    ENTITY_REFERENCE_NODE       :  5
+    ENTITY_NODE                 :  6
+    PROCESSING_INSTRUCTION_NODE :  7
+    COMMENT_NODE                :  8
+    DOCUMENT_NODE               :  9
+    DOCUMENT_TYPE_NODE          : 10
+    DOCUMENT_FRAGMENT_NODE      : 11
+    NOTATION_NODE               : 12
+
 
 # Export other modules for use in plugins.
 Annotator.Delegator = Delegator
 Annotator.Range = Range
+Annotator.Util = Util
+Annotator.Widget = Widget
+Annotator.Viewer = Viewer
+Annotator.Editor = Editor
+Annotator.Notification = Notification
+
+# Attach notification methods to the Annotation object
+notification = new Notification
+Annotator.showNotification = notification.show
+Annotator.hideNotification = notification.hide
+
+# Expose a global instance registry
+Annotator._instances = []
 
 # Bind gettext helper so plugins can use localisation.
 Annotator._t = _t
@@ -717,11 +820,21 @@ Annotator.supported = -> (-> !!this.getSelection)()
 # Restores the Annotator property on the global object to it's
 # previous value and returns the Annotator.
 Annotator.noConflict = ->
-  util.getGlobal().Annotator = _Annotator
+  Util.getGlobal().Annotator = _Annotator
   this
 
 # Create global access for Annotator
-$.plugin 'annotator', Annotator
+$.fn.annotator = (options) ->
+  args = Array::slice.call(arguments, 1)
+  this.each ->
+    # check the data() cache, if it's there we'll call the method requested
+    instance = $.data(this, 'annotator')
+    if instance
+      options && instance[options].apply(instance, args)
+    else
+      instance = new Annotator(this, options)
+      $.data(this, 'annotator', instance)
+
 
 # Export Annotator object.
-this.Annotator = Annotator;
+module.exports = Annotator

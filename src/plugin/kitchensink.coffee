@@ -1,3 +1,6 @@
+Annotator = require('annotator')
+
+
 # Public: A initialization function that sets up the Annotator and some of the
 # default plugins. Intended for use with the annotator-full package.
 #
@@ -26,7 +29,7 @@
 #
 # Returns itself for chaining.
 Annotator::setupPlugins = (config={}, options={}) ->
-  win = util.getGlobal()
+  win = Annotator.Util.getGlobal()
 
   # Set up the default plugins.
   plugins = ['Unsupported', 'Auth', 'Tags', 'Filter', 'Store', 'AnnotateItPermissions']

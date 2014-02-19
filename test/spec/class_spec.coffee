@@ -1,7 +1,12 @@
+h = require('helpers')
+Delegator = require('../../src/class')
+
 class DelegatedExample extends Delegator
   events:
     'div click': 'pushA'
-    'baz': 'pushB'
+    'mousedown': 'pushB'
+    'li click': 'pushC'
+    'wibble': 'pushD'
 
   options:
     foo: "bar"
@@ -14,133 +19,106 @@ class DelegatedExample extends Delegator
   pushA: -> @returns.push("A")
   pushB: -> @returns.push("B")
   pushC: -> @returns.push("C")
+  pushD: -> @returns.push("D")
+
 
 describe 'Delegator', ->
   delegator = null
   $fix = null
 
   beforeEach ->
-    addFixture('delegator')
+    h.addFixture('delegator')
 
-    delegator = new DelegatedExample(fix())
-    $fix = $(fix())
+    delegator = new DelegatedExample(h.fix())
+    $fix = $(h.fix())
 
-  afterEach -> clearFixtures()
+  afterEach -> h.clearFixtures()
 
-  describe "options", ->
-    it "should provide access to an options object", ->
-      expect(delegator.options.foo).toEqual("bar")
-      delegator.options.bar = (a) -> "<#{a}>"
+  it "should provide access to an options object", ->
+    assert.equal(delegator.options.foo, "bar")
+    delegator.options.bar = (a) -> "<#{a}>"
 
-    it "should be unique to an instance", ->
-      expect(delegator.options.bar("hello")).toEqual("hello")
-
-  describe "addEvent", ->
-    it "adds an event for a selector", ->
-      delegator.addEvent('p', 'foo', 'pushC')
-
-      $fix.find('p').trigger('foo')
-      expect(delegator.returns).toEqual(['C'])
-
-    it "adds an event for an element", ->
-      delegator.addEvent($fix.find('p').get(0), 'bar', 'pushC')
-
-      $fix.find('p').trigger('bar')
-      expect(delegator.returns).toEqual(['C'])
-
-    it "uses event delegation to bind the events", ->
-      delegator.addEvent('li', 'click', 'pushB')
-
-      $fix.find('ol').append("<li>Hi there, I'm new round here.</li>")
-      $fix.find('li').click()
-
-      expect(delegator.returns).toEqual(['B', 'A', 'B', 'A'])
+  it "should be unique to an instance", ->
+    assert.equal(delegator.options.bar("hello"), "hello")
 
   it "automatically binds events described in its events property", ->
     $fix.find('p').click()
-    expect(delegator.returns).toEqual(['A'])
+    assert.deepEqual(delegator.returns, ['A'])
 
-  it "will bind events in its events property to its root element if no selector is specified", ->
+  it "will bind non-custom events to its root element if no selector is specified", ->
+    $fix.trigger('mousedown')
+    assert.deepEqual(delegator.returns, ['B'])
+
+  it "will bind custom events to itself if no selector is specified", ->
+    $fix.trigger('wibble')
+    assert.deepEqual(delegator.returns, [])
+    delegator.publish('wibble')
+    assert.deepEqual(delegator.returns, ['D'])
+
+  it "uses event delegation to bind the events", ->
+    $fix.find('ol').append("<li>Hi there, I'm new round here.</li>")
+    $fix.find('li').click()
+
+    assert.deepEqual(delegator.returns, ['C', 'A', 'C', 'A'])
+
+  it "should not bubble custom events", ->
+    callback = sinon.spy()
+    $('body').bind('custom', callback)
+
+    delegator.element = $('<div />').appendTo('body')
+    delegator.publish('custom')
+
+    assert.isFalse(callback.called)
+
+  it ".removeEvents() should remove all events previously bound by addEvents", ->
+    delegator.removeEvents()
+
+    $fix.find('ol').append("<li>Hi there, I'm new round here.</li>")
+    $fix.find('li').click()
     $fix.trigger('baz')
-    expect(delegator.returns).toEqual(['B'])
 
-  describe "on", ->
-    it "should be an alias of Delegator#subscribe()", ->
-      expect(delegator.on).toEqual(delegator.subscribe)
+    assert.deepEqual(delegator.returns, [])
 
-  describe "subscribe", ->
-    it "should bind an event to the Delegator#element", ->
-      callback = jasmine.createSpy('listener')
-      delegator.subscribe('custom', callback)
-      
-      delegator.element.trigger('custom')
-      expect(callback).toHaveBeenCalled()
+  it ".subscribe() subscribes listeners", ->
+    res = []
+    delegator.subscribe('foo', -> res.push('bar'))
+    assert.deepEqual(res, [])
+    delegator.publish('foo')
+    assert.deepEqual(res, ['bar'])
 
-    it "should remove the event object from the parameters passed to the callback", ->
-      callback = jasmine.createSpy('listener')
-      delegator.subscribe('custom', callback)
+  it "passes args from .publish() to listeners", ->
+    res = []
+    delegator.subscribe('foo', (x, y, z) -> res.push(z, y, x))
+    assert.deepEqual(res, [])
+    delegator.publish('foo', [1, 2, 3])
+    assert.deepEqual(res, [3, 2, 1])
 
-      delegator.element.trigger('custom', ['first', 'second', 'third'])
-      expect(callback).toHaveBeenCalledWith('first', 'second', 'third')
+  it "invokes the callback in the context of the object by default", ->
+    res = null
+    delegator.subscribe('foo', (-> res = this))
+    delegator.publish('foo')
+    assert.equal(res, delegator)
 
-    it "should ensure the bound function is unbindable", ->
-      callback = jasmine.createSpy('listener')
+  it "invokes the callback with a context if provided", ->
+    res = null
+    sentinel = {}
+    delegator.subscribe('foo', (-> res = this), sentinel)
+    delegator.publish('foo')
+    assert.equal(res, sentinel)
 
-      delegator.subscribe('custom', callback)
-      delegator.unsubscribe('custom', callback)
-      delegator.publish('custom')
+  it ".unsubscribe() unsubscribes listeners", ->
+    res = []
+    cbk = -> res.push('bar')
+    delegator.subscribe('foo', cbk)
+    delegator.unsubscribe('foo', cbk)
+    delegator.publish('foo')
+    assert.deepEqual(res, [])
 
-      expect(callback).not.toHaveBeenCalled()
-
-    it "should not bubble custom events", ->
-      callback = jasmine.createSpy('listener')
-      $('body').bind('custom', callback)
-
-      delegator.element = $('<div />').appendTo('body')
-      delegator.publish('custom')
-
-      expect(callback).not.toHaveBeenCalled()
-
-  describe "unsubscribe", ->
-    it "should unbind an event from the Delegator#element", ->
-      callback = jasmine.createSpy('listener')
-
-      delegator.element.bind('custom', callback)
-      delegator.unsubscribe('custom', callback)
-      delegator.element.trigger('custom')
-
-      expect(callback).not.toHaveBeenCalled()
-      
-      callback = jasmine.createSpy('second listener')
-
-      delegator.element.bind('custom', callback)
-      delegator.unsubscribe('custom')
-      delegator.element.trigger('custom')
-
-      expect(callback).not.toHaveBeenCalled()
-
-    describe "publish", ->
-      it "should trigger an event on the Delegator#element", ->
-        callback = jasmine.createSpy('listener')
-        delegator.element.bind('custom', callback)
-
-        delegator.publish('custom')
-        expect(callback).toHaveBeenCalled()
-
-    describe "isCustomEvent", ->
-      events = [
-        ['click', false]
-        ['mouseover', false]
-        ['mousedown', false]
-        ['submit', false]
-        ['load', false]
-        ['click.namespaced', false]
-        ['save', true]
-        ['cancel', true]
-        ['update', true]
-      ]        
-
-      it "should return true if the string passed is a custom event", ->
-        while events.length
-          [event, result] = events.shift()
-          expect(delegator.isCustomEvent(event)).toEqual(result)
+  it ".unsubscribe() only unsubscribes listeners passed", ->
+    res = []
+    cbk = -> res.push('bar')
+    delegator.subscribe('foo', -> res.push('baz'))
+    delegator.subscribe('foo', cbk)
+    delegator.unsubscribe('foo', cbk)
+    delegator.publish('foo')
+    assert.deepEqual(res, ['baz'])
