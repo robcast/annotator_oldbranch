@@ -192,7 +192,11 @@ class Annotator.Plugin.Store
     if action is "search"
       opts = $.extend(opts, data: obj)
       return opts
-
+    
+    # ROC: try to add annotationData  
+    if action is "create" or action is "update"
+      obj = $.extend(obj, @options.annotationData)
+    
     data = obj && JSON.stringify(obj)
 
     # If emulateJSON is enabled, we send a form request (the correct
