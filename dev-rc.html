@@ -124,11 +124,12 @@
           //.addPlugin('Tags')
           .addPlugin('Auth', {
             //tokenUrl: 'http://annotateit.org/api/token'
-            tokenUrl: 'http://localhost:8080/test/annotator/token?user=casties'
+            //tokenUrl: 'http://localhost:8080/test/annotator/token?user=casties'
+            tokenUrl: 'http://localhost:8080/test/annotator/token'
             //autoFetch: false
           })
           .addPlugin('Permissions', {
-            user: 'casties',
+            user: 'anonymous',
             userString: function (user) {
               if (user && user.name) {
                 return user.name;
