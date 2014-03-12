@@ -1,9 +1,8 @@
-/.redo
-*.redo?.tmp
 .DS_Store
-.cake_task_cache
-*.sublime-workspace
 node_modules
 .do_built.dir
 .redo
 .settings
+doc/_build
+/.deps
+/pkg
