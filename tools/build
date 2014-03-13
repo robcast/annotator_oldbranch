@@ -131,6 +131,9 @@ if (require.main === module) {
       case 'annotator-bookmarklet':
         bookmarklet();
         break;
+      case 'annotator-digilib':
+        digilib();
+        break;
       case 'bootstrap':
         bootstrap();
         break;
@@ -233,6 +236,20 @@ if (require.main === module) {
       './src/plugin/{unsupported,auth,store,annotateitpermissions}.coffee'
     ).reduce(exports.plugin, b);
     pack(b, 'pkg/annotator-bookmarklet.js', {
+      debug: true
+    , standalone: 'Annotator'
+    });
+  }
+
+  function digilib() {
+    var b = exports.browserify().plugin(loader).require('./src/annotator', {
+      entry: true
+    , expose: 'annotator'
+    });
+    glob.sync(
+      './src/plugin/{unsupported,authlogin,store,permissions,markdown,tags,filter}.coffee'
+    ).reduce(exports.plugin, b);
+    pack(b, 'pkg/annotator-digilib.js', {
       debug: true
     , standalone: 'Annotator'
     });

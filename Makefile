@@ -13,6 +13,8 @@ FULL_PKG := pkg/annotator-full.js pkg/annotator.css
 BOOKMARKLET_PKG := pkg/annotator-bookmarklet.js pkg/annotator.css \
 	pkg/bootstrap.js
 
+DIGILIB_PKG := pkg/annotator-digilib.js pkg/annotator.css
+
 BUILD := ./tools/build
 DEPS := ./tools/build -d
 
@@ -21,13 +23,14 @@ df = $(DEPDIR)/$(*F)
 
 PKGDIRS := pkg/lib pkg/lib/plugin
 
-all: annotator plugins annotator-full bookmarklet
+all: annotator plugins annotator-full bookmarklet annotator-digilib
 default: all
 
 annotator: $(ANNOTATOR_PKG)
 plugins: $(PLUGIN_PKG)
 annotator-full: $(FULL_PKG)
 bookmarklet: $(BOOKMARKLET_PKG)
+annotator-digilib: $(DIGILIB_PKG)
 
 pkg: $(ANNOTATOR_PKG) $(PLUGIN_PKG) $(FULL_PKG) $(BOOKMARKLET_PKG)
 	cp package.json main.js index.js pkg/
@@ -65,5 +68,5 @@ $(DEPDIR) $(PKGDIRS):
 
 -include $(DEPDIR)/*.d
 
-.PHONY: all annotator plugins annotator-full bookmarklet clean test develop \
+.PHONY: all annotator plugins annotator-full bookmarklet annotator-digilib clean test develop \
 	pkg doc
