@@ -193,7 +193,7 @@ class Annotator.Plugin.Store
       opts = $.extend(opts, data: obj)
       return opts
     
-    # ROC: try to add annotationData  
+    # add annotationData  
     if action is "create" or action is "update"
       obj = $.extend(obj, @options.annotationData)
     
