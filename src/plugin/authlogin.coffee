@@ -130,6 +130,10 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
     # List of functions to be executed when we have a valid token.
     @waitingForToken = []
 
+  # Public: Initialises the plugin.
+  #
+  # Returns nothing.
+  pluginInit: ->
     if @options.token
       this.setToken(@options.token)
     else
@@ -240,16 +244,12 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
 
     if (timeToExpiry > 0) then timeToExpiry else 0
 
-  # Public: Updates the headers to be sent with the Store requests. This is
-  # achieved by updating the 'annotator:headers' key in the @element.data()
-  # store.
+  # Public: Updates the headers to be sent with the Store requests.
   #
   # Returns nothing.
   updateHeaders: ->
-    current = @element.data('annotator:headers')
-    @element.data('annotator:headers', $.extend(current, {
-      'x-annotator-auth-token': @token,
-    }))
+    if this.annotator.registry.store?.setHeader?
+      this.annotator.registry.store.setHeader('x-annotator-auth-token', @token)
 
   # Runs the provided callback if a valid token is available. Otherwise requests
   # a token until it recieves a valid one.

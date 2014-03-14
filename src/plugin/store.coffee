@@ -297,5 +297,3 @@ class Annotator.Plugin.Store
 
 
 module.exports = Annotator.Plugin.Store
-
-}
