@@ -230,8 +230,8 @@ class Annotator.Plugin.Auth extends Annotator.Plugin
   #
   # Returns nothing.
   updateHeaders: ->
-    if this.annotator.registry.store?.setHeader?
-      this.annotator.registry.store.setHeader('x-annotator-auth-token', @token)
+    if this.annotator.store?.setHeader?
+      this.annotator.store.setHeader('x-annotator-auth-token', @token)
 
   # Runs the provided callback if a valid token is available. Otherwise requests
   # a token until it recieves a valid one.

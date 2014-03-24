@@ -662,16 +662,20 @@ class Annotator extends Delegator
     # Cancel any pending hiding of the viewer.
     this.clearViewerHideTimer()
 
-    # Don't do anything if we're making a selection or
-    # already displaying the viewer
-    return false if @mouseIsDown or @viewer.isShown()
+    # Don't do anything if we're making a selection
+    return false if @mouseIsDown
+
+    # If the viewer is already shown, hide it first
+    @viewer.hide() if @viewer.isShown()
 
     annotations = $(event.target)
       .parents('.annotator-hl')
       .addBack()
-      .map -> return $(this).data("annotation")
+      .map( -> return $(this).data("annotation"))
+      .toArray()
 
-    this.showViewer($.makeArray(annotations), Util.mousePosition(event, @wrapper[0]))
+    # Now show the viewer with the wanted annotations
+    this.showViewer(annotations, Util.mousePosition(event, @wrapper[0]))
 
   # Annotator#element callback. Sets @ignoreMouseup to true to prevent
   # the annotation selection events firing when the adder is clicked.

@@ -6,3 +6,6 @@ node_modules
 doc/_build
 /.deps
 /pkg
+/.externalToolBuilders
+/.project
+/.gitignore

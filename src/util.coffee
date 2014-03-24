@@ -40,6 +40,7 @@ Util.flatten = (array) ->
 
   flatten(array)
 
+
 # Public: decides whether node A is an ancestor of node B.
 #
 # This function purposefully ignores the native browser function for this,
