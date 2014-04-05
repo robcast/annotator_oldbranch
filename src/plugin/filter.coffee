@@ -1,42 +1,46 @@
 Annotator = require('annotator')
 $ = Annotator.Util.$
+_t = Annotator._t
 
-class Annotator.Plugin.Filter extends Annotator.Plugin
+class Filter extends Annotator.Plugin
   # Events and callbacks to bind to the Filter#element.
   events:
     ".annotator-filter-property input focus": "_onFilterFocus"
-    ".annotator-filter-property input blur":  "_onFilterBlur"
+    ".annotator-filter-property input blur": "_onFilterBlur"
     ".annotator-filter-property input keyup": "_onFilterKeyup"
-    ".annotator-filter-previous click":       "_onPreviousClick"
-    ".annotator-filter-next click":           "_onNextClick"
-    ".annotator-filter-clear click":          "_onClearClick"
+    ".annotator-filter-previous click": "_onPreviousClick"
+    ".annotator-filter-next click": "_onNextClick"
+    ".annotator-filter-clear click": "_onClearClick"
 
   # Common classes used to change plugin state.
   classes:
-    active:   'annotator-filter-active'
+    active: 'annotator-filter-active'
     hl:
-      hide:   'annotator-hl-filtered'
+      hide: 'annotator-hl-filtered'
       active: 'annotator-hl-active'
 
   # HTML templates for the plugin UI.
   html:
     element: """
-             <div class="annotator-filter">
-               <strong>""" + Annotator._t('Navigate:') + """</strong>
-               <span class="annotator-filter-navigation">
-                 <button type="button" class="annotator-filter-previous">""" + Annotator._t('Previous') + """</button>
-                 <button type="button" class="annotator-filter-next">""" + Annotator._t('Next') + """</button>
-               </span>
-               <strong>""" + Annotator._t('Filter by:') + """</strong>
-             </div>
-             """
-    filter:  """
-             <span class="annotator-filter-property">
-               <label></label>
-               <input/>
-               <button type="button" class="annotator-filter-clear">""" + Annotator._t('Clear') + """</button>
-             </span>
-             """
+      <div class="annotator-filter">
+        <strong>#{_t('Navigate:')}</strong>
+        <span class="annotator-filter-navigation">
+          <button type="button"
+                  class="annotator-filter-previous">#{_t('Previous')}</button>
+          <button type="button"
+                  class="annotator-filter-next">#{_t('Next')}</button>
+        </span>
+        <strong>#{_t('Filter by:')}</strong>
+      </div>
+      """
+    filter: """
+      <span class="annotator-filter-property">
+        <label></label>
+        <input/>
+        <button type="button"
+                class="annotator-filter-clear">#{_t('Clear')}</button>
+      </span>
+      """
 
   # Default options for the plugin.
   options:
@@ -81,7 +85,7 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
   #
   # Examples
   #
-  #   filter = new Annotator.Plugin.Filter(annotator.element)
+  #   filter = new Filter(annotator.element)
   #
   # Returns a new instance of the Filter plugin.
   constructor: (element, options) ->
@@ -323,7 +327,9 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
     annotation = current.data 'annotation'
 
     index = active.index current[0]
-    next  = active.filter(":#{operator}(#{index})").not(annotation.highlights).eq(resetOffset)
+    next  = active.filter(":#{operator}(#{index})")
+                  .not(annotation.highlights)
+                  .eq(resetOffset)
     next  = active.eq(resetOffset) unless next.length
 
     this._scrollToHighlight next.data('annotation').highlights
@@ -370,10 +376,6 @@ class Annotator.Plugin.Filter extends Annotator.Plugin
   _onClearClick: (event) ->
     $(event.target).prev('input').val('').keyup().blur()
 
+Annotator.Plugin.register('Filter', Filter)
 
-# Export the copy of jQuery we use to make testing a touch easier. This is ugly
-# and we should stop testing the internals of these plugins in this way, but for
-# now it will have to do.
-Annotator.Plugin.Filter.$ = $
-
-module.exports = Annotator.Plugin.Filter
+module.exports = Filter

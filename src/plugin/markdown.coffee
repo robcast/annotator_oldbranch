@@ -4,7 +4,7 @@ $ = Annotator.Util.$
 
 # Plugin that renders annotation comments displayed in the Viewer in Markdown.
 # Requires Showdown library to be present in the page when initialised.
-class Annotator.Plugin.Markdown extends Annotator.Plugin
+class Markdown extends Annotator.Plugin
   # Events to be bound to the @element.
   events:
     'annotationViewerTextField': 'updateTextField'
@@ -24,7 +24,8 @@ class Annotator.Plugin.Markdown extends Annotator.Plugin
       super
       @converter = new Showdown.converter()
     else
-      console.error Annotator._t("To use the Markdown plugin, you must include Showdown into the page first.")
+      console.error Annotator._t("To use the Markdown plugin, you must include
+                                  Showdown into the page first.")
 
   # Annotator event callback. Displays the annotation.text as a Markdown
   # rendered version.
@@ -57,5 +58,6 @@ class Annotator.Plugin.Markdown extends Annotator.Plugin
   convert: (text) ->
     @converter.makeHtml text
 
+Annotator.Plugin.register('Markdown', Markdown)
 
-module.exports = Annotator.Plugin.Markdown
+module.exports = Markdown

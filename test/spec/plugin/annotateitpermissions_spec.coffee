@@ -1,9 +1,9 @@
-{$} = require('../../../src/util')
+$ = require('jquery')
 Annotator = require('annotator')
 AnnotateItPermissions = require('../../../src/plugin/annotateitpermissions')
 
 
-describe 'Annotator.Plugin.AnnotateItPermissions', ->
+describe 'AnnotateItPermissions plugin', ->
   el = null
   permissions = null
   annotator = null

@@ -1,15 +1,11 @@
-StorageProvider = require './storage'
-{$} = require './util'
+$ = require('jquery')
 
+# Public: Provides CRUD methods for annotations which call corresponding plugin
+# hooks.
+class AnnotationRegistry
 
-# Public: Provides CRUD methods for annotations which call corresponding registry hooks.
-class AnnotationProvider
-
-  @configure: (registry) ->
-    registry['annotations'] ?= new this(registry)
-    registry.include(StorageProvider)
-
-  constructor: (@registry) ->
+  configure: (config) ->
+    {@core} = config
 
   # Creates and returns a new annotation object.
   #
@@ -27,7 +23,7 @@ class AnnotationProvider
   #   registry.create({}) # Resolves to {myProperty: "This is a…"}
   #
   # Returns a Promise of an annotation Object.
-  create: (obj={}) ->
+  create: (obj = {}) ->
     this._cycle(obj, 'create')
 
   # Updates an annotation.
@@ -71,16 +67,7 @@ class AnnotationProvider
   #
   # Returns a Promise resolving to the store return value.
   query: (query) ->
-    return @registry['store'].query(query)
-
-  # Public: Queries the store
-  #
-  # query - An Object defining a query. This may be interpreted differently by
-  #         different stores.
-  #
-  # Returns a Promise resolving to the annotations.
-  load: (query) ->
-    return this.query(query)
+    return @core.store.query(query)
 
   # Private: cycle a store event, keeping track of the annotation object and
   # updating it as necessary.
@@ -88,8 +75,8 @@ class AnnotationProvider
     safeCopy = $.extend(true, {}, obj)
     delete safeCopy._local
 
-    @registry['store'][storeFunc](safeCopy)
-      .then (ret) =>
+    @core.store[storeFunc](safeCopy)
+      .then (ret) ->
         # Empty object without changing identity
         for own k, v of obj
           if k != '_local'
@@ -98,6 +85,6 @@ class AnnotationProvider
         # Update with store return value
         $.extend(obj, ret)
 
-        return obj 
+        return obj
 
-module.exports = AnnotationProvider
+module.exports = AnnotationRegistry

@@ -1,13 +1,13 @@
+$ = require('jquery')
 Annotator = require('annotator')
-$ = Annotator.Util.$
 Store = require('../../../src/plugin/store')
 
-describe "Annotator.Plugin.Store", ->
+describe "Store plugin", ->
   store = null
   server = null
 
   beforeEach ->
-    store = new Annotator.Plugin.Store()
+    store = new Store()
     sinon.stub($, 'ajax').returns({})
 
   afterEach ->
@@ -129,6 +129,13 @@ describe "Annotator.Plugin.Store", ->
       _method: 'DELETE',
       json: '{"id":123}',
     })
+
+  it "should extend the annotation with the content of annotationData", ->
+    store.options.annotationData = {custom: 'value', customArray: []}
+    store.create({id: 123})
+    [_, opts] = $.ajax.args[0]
+
+    assert.equal('{"id":123,"custom":"value","customArray":[]}', opts.data)
 
   describe "_onError", ->
     message = null

@@ -33,7 +33,7 @@ bookmarklet: $(BOOKMARKLET_PKG)
 annotator-digilib: $(DIGILIB_PKG)
 
 pkg: $(ANNOTATOR_PKG) $(PLUGIN_PKG) $(FULL_PKG) $(BOOKMARKLET_PKG)
-	coffee -c -o pkg/lib src
+	$(shell npm bin)/coffee -c -o pkg/lib src
 	cp package.json main.js index.js pkg/
 	cp AUTHORS pkg/
 	cp LICENSE* pkg/
@@ -48,8 +48,17 @@ test:
 develop:
 	npm start
 
-doc:
+doc: docco
 	cd doc && $(MAKE) html
+	docco src/*.coffee -o doc/_build/html/docco/
+
+# Make the docco build timestamped off the docco.css file which is regenerated
+# on every docco build. This, in concert with the next task, can ensure that we
+# don't regenerate docco docs unless the source files have actually changed.
+docco: doc/_build/html/src/docco.css
+
+doc/_build/html/src/docco.css: $(wildcard src/**/*.coffee)
+	$(shell npm bin)/docco src/**/*.coffee -o doc/_build/html/src
 
 pkg/annotator.css: css/annotator.css
 	$(BUILD) -c
@@ -69,5 +78,10 @@ $(DEPDIR) $(PKGDIRS):
 
 -include $(DEPDIR)/*.d
 
+<<<<<<< HEAD
 .PHONY: all annotator plugins annotator-full bookmarklet annotator-digilib clean test develop \
 	pkg doc
+=======
+.PHONY: all annotator plugins annotator-full bookmarklet clean test develop \
+	pkg doc docco
+>>>>>>> refs/remotes/upstream/master

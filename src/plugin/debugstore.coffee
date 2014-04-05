@@ -1,7 +1,8 @@
 Annotator = require('annotator')
 $ = Annotator.Util.$
 
-uuid = (-> counter = 0; -> counter++)()
+
+uuid = (-> counter = -1; -> counter += 1)()
 
 log = (args...) ->
   console.debug("DebugStore", args...)
@@ -36,6 +37,6 @@ class DebugStore
     log("would set header '#{key}'='#{value}'")
 
 
-Annotator.Plugin.DebugStore =  DebugStore
+Annotator.Plugin.register('DebugStore', DebugStore)
 
 module.exports = DebugStore

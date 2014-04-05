@@ -1,7 +1,7 @@
-Delegator = require './class'
-Util = require './util'
+$ = require('jquery')
+Delegator = require('./delegator')
+Util = require('./util')
 
-$ = Util.$
 
 # Public: Base class for the Editor and Viewer elements. Contains methods that
 # are shared between the two.
@@ -42,11 +42,11 @@ class Widget extends Delegator
     widget   = @element.children(":first")
     offset   = widget.offset()
     viewport = {
-      top:   window.scrollTop(),
+      top: window.scrollTop(),
       right: window.width() + window.scrollLeft()
     }
     current = {
-      top:   offset.top
+      top: offset.top
       right: offset.left + widget.width()
     }
 

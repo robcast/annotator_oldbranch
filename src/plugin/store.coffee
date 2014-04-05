@@ -1,5 +1,7 @@
 Annotator = require('annotator')
-$ = Annotator.Util.$
+Util = Annotator.Util
+$ = Util.$
+_t = Util.TranslationString
 
 
 # Public: The Store plugin can be used to persist annotations to a database
@@ -11,14 +13,16 @@ $ = Annotator.Util.$
 # The store handles five distinct actions "read", "search", "create", "update"
 # and "destroy". The requests made can be customised with options when the
 # plugin is added to the Annotator.
-class Annotator.Plugin.Store
+class Store
 
   # User customisable options available.
   options:
 
     # Custom meta data that will be attached to every annotation that is sent
     # to the server. This _will_ override previous values.
-    annotationData: {}
+    #
+    # @slatedForDeprecation 2.1.0
+    annotationData: null
 
     # Should the plugin emulate HTTP methods like PUT and DELETE for
     # interaction with legacy web servers? Setting this to `true` will fake
@@ -49,11 +53,11 @@ class Annotator.Plugin.Store
     # destroy: DELETE
     # search:  GET
     urls:
-      create:  '/annotations'
-      read:    '/annotations/:id'
-      update:  '/annotations/:id'
+      create: '/annotations'
+      read: '/annotations/:id'
+      update: '/annotations/:id'
       destroy: '/annotations/:id'
-      search:  '/search'
+      search: '/search'
 
   # Public: The contsructor initailases the Store instance. It requires the
   # Annotator#element and an Object of options.
@@ -125,12 +129,12 @@ class Annotator.Plugin.Store
   query: (queryObj) ->
     dfd = $.Deferred()
     this._apiRequest('search', queryObj)
-      .done (obj) ->
-        rows = obj.rows
-        delete obj.rows
-        dfd.resolve(rows, obj)
-      .fail () ->
-        dfd.reject.apply(dfd, arguments)
+    .done (obj) ->
+      rows = obj.rows
+      delete obj.rows
+      dfd.resolve(rows, obj)
+    .fail ->
+      dfd.reject.apply(dfd, arguments)
     return dfd.promise()
 
   # Public: Set a custom HTTP header to be sent with every request.
@@ -186,12 +190,11 @@ class Annotator.Plugin.Store
   _apiRequestOptions: (action, obj) ->
     method = this._methodFor(action)
 
-    opts = {
-      type:     method,
+    opts =
+      type: method,
       dataType: "json",
-      error:    this._onError,
-      headers:  this.options.headers
-    }
+      error: this._onError,
+      headers: this.options.headers
 
     # If emulateHTTP is enabled, we send a POST and put the real method in an
     # HTTP request header.
@@ -203,11 +206,20 @@ class Annotator.Plugin.Store
     if action is "search"
       opts = $.extend(opts, data: obj)
       return opts
-    
-    # add annotationData  
-    if action is "create" or action is "update"
-      obj = $.extend(obj, @options.annotationData)
-    
+
+>>>>>>> refs/remotes/upstream/master
+    # Add annotationData to object, if specified
+    #
+    # @slatedForDeprecation 2.1.0
+    if @options.annotationData?
+      Util.deprecationWarning("Use of the annotationData option to the Store
+                               plugin is deprecated and will be removed in a
+                               future version. Please use hooks to
+                               beforeAnnotationCreated and
+                               beforeAnnotationUpdated to replicate this
+                               behaviour.")
+      $.extend(obj, @options.annotationData)
+
     data = obj && JSON.stringify(obj)
 
     # If emulateJSON is enabled, we send a form request (the correct
@@ -262,13 +274,12 @@ class Annotator.Plugin.Store
   #
   # Returns HTTP method String.
   _methodFor: (action) ->
-    table = {
-      'create':  'POST'
-      'read':    'GET'
-      'update':  'PUT'
-      'destroy': 'DELETE'
-      'search':  'GET'
-    }
+    table =
+      create: 'POST'
+      read: 'GET'
+      update: 'PUT'
+      destroy: 'DELETE'
+      search: 'GET'
 
     table[action]
 
@@ -278,23 +289,31 @@ class Annotator.Plugin.Store
   # xhr - The jXMLHttpRequest object.
   #
   # Returns nothing.
-  _onError: (xhr) =>
+  _onError: (xhr) ->
     action  = xhr._action
-    message = Annotator._t("Sorry we could not ") + action + Annotator._t(" this annotation")
+    message = _t("Sorry we could not ") + action + _t(" this annotation")
 
     if xhr._action == 'search'
-      message = Annotator._t("Sorry we could not search the store for annotations")
+      message = _t("Sorry we could not search the store for annotations")
     else if xhr._action == 'read' && !xhr._id
-      message = Annotator._t("Sorry we could not ") + action + Annotator._t(" the annotations from the store")
+      message = _t("Sorry we could not ") +
+                action +
+                _t(" the annotations from the store")
 
     switch xhr.status
-      when 401 then message = Annotator._t("Sorry you are not allowed to ") + action + Annotator._t(" this annotation")
-      when 404 then message = Annotator._t("Sorry we could not connect to the annotations store")
-      when 500 then message = Annotator._t("Sorry something went wrong with the annotation store")
+      when 401
+        message = _t("Sorry you are not allowed to ") +
+                  action +
+                  _t(" this annotation")
+      when 404
+        message = _t("Sorry we could not connect to the annotations store")
+      when 500
+        message = _t("Sorry something went wrong with the annotation store")
 
     Annotator.showNotification message, Annotator.Notification.ERROR
 
-    console.error Annotator._t("API request failed:") + " '#{xhr.status}'"
+    console.error _t("API request failed:") + " '#{xhr.status}'"
 
+Annotator.Plugin.register('Store', Store)
 
-module.exports = Annotator.Plugin.Store
+module.exports = Store

@@ -1,8 +1,8 @@
-Annotator = require 'annotator'
+Annotator = require('annotator')
 $ = Annotator.Util.$
 
 
-class Annotator.Plugin.Document extends Annotator.Plugin
+class Document extends Annotator.Plugin
   events:
     'beforeAnnotationCreated': 'beforeAnnotationCreated'
 
@@ -66,7 +66,7 @@ class Annotator.Plugin.Document extends Annotator.Plugin
   _getEprints: =>
     return @metadata.eprints = this._getMetaTags("eprints", "name", ".")
 
-  _getMetaTags: (prefix, attribute, delimiter) =>
+  _getMetaTags: (prefix, attribute, delimiter) ->
     tags = {}
     for meta in $("meta")
       name = $(meta).attr(attribute)
@@ -107,7 +107,8 @@ class Annotator.Plugin.Document extends Annotator.Plugin
       href = this._absoluteUrl(l.prop('href')) # get absolute url
       rel = l.prop('rel')
       type = l.prop('type')
-      if rel in ["alternate", "canonical", "bookmark"] and type not in ["application/rss+xml", "application/atom+xml"]
+      if (rel in ["alternate", "canonical", "bookmark"] and
+          type not in ["application/rss+xml", "application/atom+xml"])
         @metadata.link.push(href: href, rel: rel, type: type)
 
     # look for links in scholar metadata
@@ -148,5 +149,6 @@ class Annotator.Plugin.Document extends Annotator.Plugin
     d.href = url
     d.href
 
+Annotator.Plugin.register('Document', Document)
 
-module.exports = Annotator.Plugin.Document
+module.exports = Document
