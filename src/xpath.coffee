@@ -1,9 +1,3 @@
-<<<<<<< HEAD
-Util = require './util'
-$ = Util.$
-=======
-$ = require('jquery')
->>>>>>> refs/remotes/upstream/master
 $ = require('jquery')
 
 # A simple XPath evaluator using jQuery which can evaluate queries of

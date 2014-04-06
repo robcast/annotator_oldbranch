@@ -251,16 +251,17 @@ if (require.main === module) {
   }
 
   function digilib() {
-    var b = exports.browserify().plugin(loader).require('./src/annotator', {
+    var b = exports.browserify().require('./src/annotator', {
       entry: true
     , expose: 'annotator'
     });
     glob.sync(
       './src/plugin/{unsupported,authlogin,store,permissions,markdown,tags,filter}.coffee'
-    ).reduce(exports.plugin, b);
+    ).forEach(function (p) {
+      b.add(p);
+    });
     pack(b, 'pkg/annotator-digilib.js', {
-      debug: true
-    , standalone: 'Annotator'
+      debug: true,
     });
   }
 

@@ -78,10 +78,5 @@ $(DEPDIR) $(PKGDIRS):
 
 -include $(DEPDIR)/*.d
 
-<<<<<<< HEAD
 .PHONY: all annotator plugins annotator-full bookmarklet annotator-digilib clean test develop \
-	pkg doc
-=======
-.PHONY: all annotator plugins annotator-full bookmarklet clean test develop \
 	pkg doc docco
->>>>>>> refs/remotes/upstream/master

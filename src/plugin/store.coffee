@@ -207,7 +207,6 @@ class Store
       opts = $.extend(opts, data: obj)
       return opts
 
->>>>>>> refs/remotes/upstream/master
     # Add annotationData to object, if specified
     #
     # @slatedForDeprecation 2.1.0
