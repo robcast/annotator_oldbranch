@@ -7,14 +7,14 @@
     <script src="lib/vendor/jquery.js"></script><!-- dynamically provided -->
     <script src="lib/vendor/json2.js"></script>
 
-    <script src="pkg/annotator.js"></script>
-    <script src="pkg/annotator.store.js"></script>
-    <script src="pkg/annotator.permissions.js"></script>
-    <script src="pkg/annotator.annotateitpermissions.js"></script>
-    <script src="pkg/annotator.auth.js"></script>
-    <script src="pkg/annotator.tags.js"></script>
-    <script src="pkg/annotator.unsupported.js"></script>
-    <script src="pkg/annotator.filter.js"></script>
+    <script src="lib/annotator.js"></script>
+    <script src="lib/plugin/store.js"></script>
+    <script src="lib/plugin/permissions.js"></script>
+    <script src="lib/plugin/annotateitpermissions.js"></script>
+    <script src="lib/plugin/auth.js"></script>
+    <script src="lib/plugin/tags.js"></script>
+    <script src="lib/plugin/unsupported.js"></script>
+    <script src="lib/plugin/filter.js"></script>
 
     <link rel="stylesheet" type="text/css" href="css/annotator.css">
   </head>
@@ -85,6 +85,7 @@
     </div>
 
     <script>
+      var uri = window.location.href;
       var devAnnotator;
       var $ = require('jquery');
       var Annotator = require('annotator');
@@ -99,8 +100,8 @@
 
       factory.setStore(Store, {
         prefix: 'http://localhost:18080/AnnotationManagerN4J/annotator',
-        loadFromSearch: {uri: window.location},
-        annotationData: {uri: window.location}
+        loadFromSearch: {uri: uri},
+        annotationData: {uri: uri}
       });
       factory.addPlugin(Auth, null, {
         tokenUrl: 'http://localhost:8080/test/annotator/token'
@@ -110,6 +111,8 @@
 
       devAnnotator = factory.getInstance();
       devAnnotator.attach(elem);
+      
+      devAnnotator.load({uri: uri})
     </script>
   </body>
 
