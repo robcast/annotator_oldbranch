@@ -100,7 +100,6 @@
 
       factory.setStore(Store, {
         prefix: 'http://localhost:18080/AnnotationManagerN4J/annotator',
-        loadFromSearch: {uri: uri},
         annotationData: {uri: uri}
       });
       factory.addPlugin(Auth, null, {
@@ -111,7 +110,6 @@
 
       devAnnotator = factory.getInstance();
       devAnnotator.attach(elem);
-      
       devAnnotator.load({uri: uri})
     </script>
   </body>

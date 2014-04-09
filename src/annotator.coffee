@@ -124,8 +124,10 @@ class Annotator extends Delegator
     # TODO: Stop using this hash to find plugins
     # This block is super hacky and dumb.
     for p in plugins
-      for name, klass of Annotator.Plugin._ctors when p instanceof klass
-        @plugins[name] = p
+      for name, klass of Annotator.Plugin._ctors
+        if p.constructor is klass
+          @plugins[name] = p
+          break
 
     @annotations = new AnnotationRegistry()
     @annotations.configure(core: this)
@@ -133,6 +135,10 @@ class Annotator extends Delegator
 
   # Public: attach the Annotator and its associated event handling to the
   # specified element.
+  #
+  # element - The element on which bind delegated events
+  #
+  # Returns the instance for chaining.
   attach: (element) ->
     @element = $(element)
     this.addEvents()
@@ -154,6 +160,9 @@ class Annotator extends Delegator
       p.annotator = this  # this must remain for backwards compatibility for as
                           # long as we support calling pluginInit
       p.pluginInit?()
+
+    # Return this for chaining
+    this
 
   # Public: Creates a subclass of Annotator.
   #
@@ -428,6 +437,7 @@ class Annotator extends Delegator
 
     # Save the annotation data on each highlighter element.
     $(annotation._local.highlights).data('annotation', annotation)
+    $(annotation._local.highlights).attr('data-annotation-id', annotation.id)
 
     annotation
 
@@ -503,18 +513,6 @@ class Annotator extends Delegator
     # but better than breaking table layouts.
     for node in normedRange.textNodes() when not white.test(node.nodeValue)
       $(node).wrapAll(hl).parent().show()[0]
-
-  # Public: highlight a list of ranges
-  #
-  # normedRanges - An array of NormalizedRanges to be highlighted.
-  # cssClass - A CSS class to use for the highlight (default: 'annotator-hl')
-  #
-  # Returns an array of highlight Elements.
-  highlightRanges: (normedRanges, cssClass = 'annotator-hl') ->
-    highlights = []
-    for r in normedRanges
-      $.merge highlights, this.highlightRange(r, cssClass)
-    highlights
 
   # Public: Registers a plugin with the Annotator. A plugin can only be
   # registered once. The plugin will be instantiated in the following order.
@@ -785,6 +783,7 @@ class Annotator extends Delegator
     # Clean up the highlights
     .done (annotation) ->
       $(annotation._local.highlights).removeClass('annotator-hl-temporary')
+      $(annotation._local.highlights).attr('data-annotation-id', annotation.id)
 
     .done (annotation) =>
       this.publish('annotationCreated', [annotation])

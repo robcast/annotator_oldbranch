@@ -436,6 +436,9 @@ describe 'Annotator', ->
     it "should store the annotation in the highlighted element's data store", ->
       assert.equal(element.data('annotation'), annotation)
 
+    it "should set the data-annotation-id of the highlight element to the annotation's id", ->
+      assert.equal(element.attr('data-annotation-id'), annotation.id)
+
   describe "cleanupAnnotation", ->
     annotation = null
     div = null
@@ -532,24 +535,6 @@ describe 'Annotator', ->
         textNodes: -> textNodes
 
       elements = annotator.highlightRange(mockRange, 'monkeys')
-      assert.equal(elements[0].className, 'monkeys')
-
-  describe "highlightRanges", ->
-    it "should return a list of highlight elements all highlighted ranges", ->
-      textNodes = (document.createTextNode(text) for text in ['hello', 'world'])
-      mockRange =
-        textNodes: -> textNodes
-      ranges = [mockRange, mockRange, mockRange]
-      elements = annotator.highlightRanges(ranges)
-      assert.lengthOf(elements, 6)
-      assert.equal(elements[0].className, 'annotator-hl')
-
-    it "should set highlight element class names to its second argument", ->
-      textNodes = (document.createTextNode(text) for text in ['hello', 'world'])
-      mockRange =
-        textNodes: -> textNodes
-      ranges = [mockRange, mockRange, mockRange]
-      elements = annotator.highlightRanges(ranges, 'monkeys')
       assert.equal(elements[0].className, 'monkeys')
 
   describe "addPlugin", ->
@@ -876,6 +861,11 @@ describe 'Annotator', ->
     it "should persist the temporary highlights if the annotation is saved", ->
       annotator.publish('annotationEditorSubmit')
       assert.equal(element[0].className, 'annotator-hl')
+
+    it "should set the data-annotation-id of the highlight element to the
+        annotation's id", ->
+      annotator.publish('annotationEditorSubmit')
+      assert.equal(element.attr('data-annotation-id'), '1')
 
     it "should create the annotation if the edit is saved", ->
       annotator.onEditorSubmit(annotation)

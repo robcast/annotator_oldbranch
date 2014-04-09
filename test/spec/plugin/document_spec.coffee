@@ -7,12 +7,27 @@ describe 'Annotator.Plugin.Document', ->
   $fix = null
   plugin = null
   metadata = null
+  annotator = null
 
   beforeEach ->
     plugin = new Document($('<div/>')[0])
+    plugin.annotator = annotator = {}
+
+    BackboneEvents = require('backbone-events-standalone')
+    BackboneEvents.mixin(annotator)
+
+    sinon.spy(Document::, 'beforeAnnotationCreated')
     plugin.pluginInit()
 
-  describe '#beforeAnnotationCreated', ->
+  afterEach ->
+    Document::beforeAnnotationCreated.restore()
+    plugin.destroy()
+
+  describe '#beforeAnnotationCreated()', ->
+    it 'should be called when beforeAnnotationEvent is fired', ->
+      annotation = {}
+      annotator.trigger('beforeAnnotationCreated', annotation)
+      assert(plugin.beforeAnnotationCreated.calledWith(annotation))
 
     it 'should add a document field to the annotation', ->
       annotation = {}
@@ -25,6 +40,7 @@ describe 'Annotator.Plugin.Document', ->
     head.append('<link rel="alternate" href="foo.pdf" type="application/pdf"></link>')
     head.append('<link rel="alternate" href="foo.doc" type="application/msword"></link>')
     head.append('<link rel="bookmark" href="http://example.com/bookmark"></link>')
+    head.append('<link rel="alternate" href="es/foo.html" hreflang="es" type="text/html"></link>')
     head.append('<meta name="citation_doi" content="10.1175/JCLI-D-11-00015.1">')
     head.append('<meta name="citation_title" content="Foo">')
     head.append('<meta name="citation_pdf_url" content="foo.pdf">')
@@ -36,6 +52,7 @@ describe 'Annotator.Plugin.Document', ->
     head.append('<link rel="icon" href="http://example.com/images/icon.ico"></link>')
     head.append('<meta name="eprints.title" content="Computer Lib / Dream Machines">')
     head.append('<meta name="prism.title" content="Literary Machines">')
+    head.append('<link rel="alternate" href="feed" type="application/rss+xml"></link>')
 
     beforeEach ->
       metadata = plugin.getDocumentMetadata()
@@ -59,6 +76,9 @@ describe 'Annotator.Plugin.Document', ->
       assert.match(metadata.link[5].href, /.+foo\.pdf$/)
       assert.equal(metadata.link[5].type, "application/pdf")
       assert.equal(metadata.link[6].href, "doi:10.1175/JCLI-D-11-00015.1")
+
+    it 'should ignore atom and RSS feeds and alternate languages', ->
+      assert.equal(metadata.link.length, 7)
 
     it 'should have highwire metadata', ->
       assert.ok(metadata.highwire)

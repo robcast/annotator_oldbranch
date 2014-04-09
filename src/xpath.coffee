@@ -1,12 +1,12 @@
 $ = require('./util').$
 
-# Get an xpath string to the node relative to the provided root
+# Get xpath strings to the provided nodes relative to the provided root
 #
-# relativeRoot - The root node for the xpath
+# relativeRoot - A jQuery object of the nodes whose xpaths are requested.
 #
-# Returns a string
-simpleXPathJQuery = (relativeRoot) ->
-  jq = this.map ->
+# Returns Array[String]
+simpleXPathJQuery = ($el, relativeRoot) ->
+  jq = $el.map ->
     path = ''
     elem = this
 
@@ -22,12 +22,12 @@ simpleXPathJQuery = (relativeRoot) ->
 
   jq.get()
 
-# Get an xpath string to the node relative to the provided root
+# Get xpath strings to the provided nodes relative to the provided root
 #
-# relativeRoot - The root node for the xpath
+# relativeRoot - A jQuery object of the nodes whose xpaths are requested.
 #
-# Returns a string
-simpleXPathPure = (relativeRoot) ->
+# Returns Array[String]
+simpleXPathPure = ($el, relativeRoot) ->
 
   getPathSegment = (node) ->
     name = getNodeName node
@@ -48,7 +48,7 @@ simpleXPathPure = (relativeRoot) ->
     xpath = xpath.replace /\/$/, ''
     xpath
 
-  jq = this.map ->
+  jq = $el.map ->
     path = getPathTo this
 
     path
@@ -87,13 +87,13 @@ getNodePosition = (node) ->
     tmp = tmp.previousSibling
   pos
 
-fromNode = (el, relativeRoot) ->
+fromNode = ($el, relativeRoot) ->
   try
-    result = simpleXPathJQuery.call el, relativeRoot
+    result = simpleXPathJQuery $el, relativeRoot
   catch exception
     console.log("jQuery-based XPath construction failed! Falling back to
                  manual.")
-    result = simpleXPathPure.call el, relativeRoot
+    result = simpleXPathPure $el, relativeRoot
   result
 
 # Public: Finds an Element Node using an XPath relative to the document root.
